@@ -30,7 +30,7 @@ interface Candidate {
   titles: string[];
 }
 
-const ACC = "#2ee6a6";
+const ACC = "#fbbf24"; // 엠버 옐로우 (네온 액센트)
 const BODY = "#0a0f1a";
 const SIDEBAR = "#0b1322";
 const CARD = "#101c31";
@@ -142,7 +142,7 @@ export default function KeywordRadar() {
           <Box bg={CARD} borderWidth="1px" borderColor={BORDER2} rounded="lg" p={4}>
             <HStack justify="space-between" mb={3}>
               <Text fontWeight="semibold">직접 조준</Text>
-              <Badge bg="rgba(46,230,166,0.15)" color={ACC} fontSize="10px">
+              <Badge bg="rgba(251,191,36,0.15)" color={ACC} fontSize="10px">
                 자동 레이더
               </Badge>
             </HStack>
@@ -160,8 +160,8 @@ export default function KeywordRadar() {
                       size="xs"
                       variant={provider === p ? "solid" : "ghost"}
                       bg={provider === p ? ACC : "transparent"}
-                      color={provider === p ? "#062018" : "gray.400"}
-                      _hover={{ bg: provider === p ? "#25c78f" : "whiteAlpha.100" }}
+                      color={provider === p ? "#241a00" : "gray.400"}
+                      _hover={{ bg: provider === p ? "#f59e0b" : "whiteAlpha.100" }}
                       onClick={() => setProvider(p)}
                     >
                       {p === "gemini" ? "Gemini" : "Claude"}
@@ -172,9 +172,9 @@ export default function KeywordRadar() {
               <Button
                 size="sm"
                 bg={ACC}
-                color="#062018"
+                color="#241a00"
                 fontWeight="bold"
-                _hover={{ bg: "#25c78f" }}
+                _hover={{ bg: "#f59e0b" }}
                 loading={busy}
                 loadingText="스캔 중"
                 onClick={runScan}
@@ -246,7 +246,7 @@ export default function KeywordRadar() {
             flexWrap="wrap"
           >
             <HStack gap={2}>
-              <Flex w={7} h={7} rounded="md" bg={ACC} color="#062018" align="center" justify="center" fontWeight="bold" fontSize="10px">
+              <Flex w={7} h={7} rounded="md" bg={ACC} color="#241a00" align="center" justify="center" fontWeight="bold" fontSize="10px">
                 DAF
               </Flex>
               <Text fontWeight="bold">실시간 트렌드 레이더</Text>
@@ -258,9 +258,9 @@ export default function KeywordRadar() {
               <Button
                 size="sm"
                 bg={ACC}
-                color="#062018"
+                color="#241a00"
                 fontWeight="bold"
-                _hover={{ bg: "#25c78f" }}
+                _hover={{ bg: "#f59e0b" }}
                 loading={busy}
                 loadingText="스캔 중"
                 onClick={runScan}
@@ -332,13 +332,13 @@ export default function KeywordRadar() {
                           rounded="full"
                           fontSize="10px"
                           whiteSpace="nowrap"
-                          bg={active ? ACC : "rgba(46,230,166,0.12)"}
-                          color={active ? "#062018" : ACC}
+                          bg={active ? ACC : "rgba(251,191,36,0.12)"}
+                          color={active ? "#241a00" : ACC}
                           borderWidth="1px"
-                          borderColor={active ? ACC : "rgba(46,230,166,0.3)"}
+                          borderColor={active ? ACC : "rgba(251,191,36,0.3)"}
                           fontWeight={active ? "bold" : "normal"}
                           boxShadow={active ? `0 0 10px ${ACC}` : "none"}
-                          _hover={{ bg: ACC, color: "#062018" }}
+                          _hover={{ bg: ACC, color: "#241a00" }}
                         >
                           {c.keyword.length > 10 ? c.keyword.slice(0, 10) + "…" : c.keyword}
                         </Box>
@@ -394,7 +394,7 @@ export default function KeywordRadar() {
                         flexShrink={0}
                         cursor="pointer"
                         onClick={() => setSelected(i)}
-                        bg={i === selected ? "rgba(46,230,166,0.18)" : INPUT}
+                        bg={i === selected ? "rgba(251,191,36,0.18)" : INPUT}
                         borderWidth="1px"
                         borderColor={i === selected ? ACC : BORDER}
                         _hover={{ borderColor: ACC }}

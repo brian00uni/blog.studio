@@ -12,7 +12,7 @@ import { useAuth } from "../lib/auth";
 
 // 전체 폭·전체 높이 + 다크 헤더로 쓰는 풀블리드 라우트
 const FULL_BLEED = ["/keyword"];
-const ACC = "#2ee6a6";
+const ACC = "#fbbf24";
 
 const nav = [
   { to: "/", label: "홈", end: true },
@@ -77,14 +77,14 @@ export default function Layout() {
                         bg={
                           isActive
                             ? dark
-                              ? "rgba(46,230,166,0.12)"
+                              ? "rgba(251,191,36,0.12)"
                               : "brand.50"
                             : "transparent"
                         }
                         _hover={{
                           bg: isActive
                             ? dark
-                              ? "rgba(46,230,166,0.12)"
+                              ? "rgba(251,191,36,0.12)"
                               : "brand.50"
                             : dark
                               ? "whiteAlpha.100"

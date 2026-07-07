@@ -14,17 +14,17 @@ const config = defineConfig({
     tokens: {
       colors: {
         brand: {
-          50: { value: "#e6f9ef" },
-          100: { value: "#c1efd6" },
-          200: { value: "#98e4bb" },
-          300: { value: "#6ed9a0" },
-          400: { value: "#45cf85" },
-          500: { value: "#03c75a" }, // 네이버 그린
-          600: { value: "#02b44e" },
-          700: { value: "#029240" },
-          800: { value: "#016f31" },
-          900: { value: "#004d22" },
-          950: { value: "#002b13" },
+          50: { value: "#fffbeb" },
+          100: { value: "#fef3c7" },
+          200: { value: "#fde68a" },
+          300: { value: "#fcd34d" },
+          400: { value: "#fbbf24" }, // 엠버 (네온 액센트)
+          500: { value: "#f59e0b" }, // 엠버 옐로우 (주색)
+          600: { value: "#d97706" },
+          700: { value: "#b45309" },
+          800: { value: "#92400e" },
+          900: { value: "#78350f" },
+          950: { value: "#451a03" },
         },
       },
     },
