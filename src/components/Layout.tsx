@@ -26,34 +26,43 @@ export default function Layout() {
     <Box minH="100vh">
       <Box as="header" borderBottomWidth="1px" bg="white" position="sticky" top={0} zIndex={10}>
         <Container maxW="5xl">
-          <Flex align="center" gap={6} py={3}>
-            <Text fontSize="lg" fontWeight="bold" color="brand.600">
+          <Flex align="center" gap={{ base: 3, md: 6 }} py={3}>
+            <Text
+              fontSize="lg"
+              fontWeight="bold"
+              color="brand.600"
+              flexShrink={0}
+            >
               블로그 스튜디오
             </Text>
 
-            <HStack gap={1} flex={1}>
-              {nav.map((n) => (
-                <NavLink key={n.to} to={n.to} end={n.end}>
-                  {({ isActive }) => (
-                    <Box
-                      px={3}
-                      py={1.5}
-                      rounded="md"
-                      fontSize="sm"
-                      fontWeight={isActive ? "medium" : "normal"}
-                      color={isActive ? "brand.700" : "gray.600"}
-                      bg={isActive ? "brand.50" : "transparent"}
-                      _hover={{ bg: isActive ? "brand.50" : "gray.100" }}
-                      transition="background 0.15s"
-                    >
-                      {n.label}
-                    </Box>
-                  )}
-                </NavLink>
-              ))}
-            </HStack>
+            {/* 모바일에서 항목이 넘치면 가로 스크롤 */}
+            <Box flex={1} overflowX="auto" css={{ scrollbarWidth: "none" }}>
+              <HStack gap={1} minW="max-content">
+                {nav.map((n) => (
+                  <NavLink key={n.to} to={n.to} end={n.end}>
+                    {({ isActive }) => (
+                      <Box
+                        px={3}
+                        py={1.5}
+                        rounded="md"
+                        fontSize="sm"
+                        whiteSpace="nowrap"
+                        fontWeight={isActive ? "medium" : "normal"}
+                        color={isActive ? "brand.700" : "gray.600"}
+                        bg={isActive ? "brand.50" : "transparent"}
+                        _hover={{ bg: isActive ? "brand.50" : "gray.100" }}
+                        transition="background 0.15s"
+                      >
+                        {n.label}
+                      </Box>
+                    )}
+                  </NavLink>
+                ))}
+              </HStack>
+            </Box>
 
-            <HStack gap={3}>
+            <HStack gap={2} flexShrink={0}>
               <Badge colorPalette={isPro ? "yellow" : "gray"} variant="subtle">
                 {isPro ? "PRO" : "무료"}
               </Badge>

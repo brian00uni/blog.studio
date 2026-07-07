@@ -52,5 +52,18 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), devApi(env)],
     server: { port: 5173 },
+    build: {
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          // 벤더 라이브러리를 캐시 친화적으로 분리
+          manualChunks: {
+            react: ["react", "react-dom", "react-router-dom"],
+            chakra: ["@chakra-ui/react", "@emotion/react"],
+            supabase: ["@supabase/supabase-js"],
+          },
+        },
+      },
+    },
   };
 });
