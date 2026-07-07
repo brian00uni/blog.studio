@@ -71,6 +71,10 @@ function signalLabel(score: number) {
   return "관망";
 }
 
+// 세션 내 스캔 결과 캐시 — /keyword 재방문 시 무료 API 재호출을 막는다.
+let scanCache: { candidates: Candidate[]; scan: number; lastScan: string } | null =
+  null;
+
 export default function KeywordRadar() {
   const { profile } = useAuth();
   const isPro = profile?.tier === "pro";
@@ -108,14 +112,24 @@ export default function KeywordRadar() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "스캔 실패");
+      const now = new Date().toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const nextScan = (scanCache?.scan ?? scan) + 1;
       setCandidates(data.candidates);
       setSelected(0);
-      setScan((n) => n + 1);
-      setLastScan(
-        new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })
-      );
+      setScan(nextScan);
+      setLastScan(now);
+      scanCache = { candidates: data.candidates, scan: nextScan, lastScan: now };
     } catch (e) {
-      setError(e instanceof Error ? e.message : "알 수 없는 오류");
+      const msg = e instanceof Error ? e.message : "알 수 없는 오류";
+      const quota = /429|quota|RESOURCE_EXHAUSTED|한도|exhausted/i.test(msg);
+      setError(
+        quota
+          ? "무료 사용량(하루 한도)을 다 썼어요. 잠시 후 다시 시도하거나 엔진을 Claude로 바꿔보세요."
+          : msg
+      );
     } finally {
       setBusy(false);
     }
@@ -125,6 +139,13 @@ export default function KeywordRadar() {
   useEffect(() => {
     if (didInit.current || !isPro) return;
     didInit.current = true;
+    // 세션에 이전 결과가 있으면 재사용(무료 API 재호출 방지), 없을 때만 자동 스캔
+    if (scanCache) {
+      setCandidates(scanCache.candidates);
+      setScan(scanCache.scan);
+      setLastScan(scanCache.lastScan);
+      return;
+    }
     runScan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPro]);
