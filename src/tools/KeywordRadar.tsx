@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Badge,
   Box,
@@ -8,7 +8,6 @@ import {
   HStack,
   Input,
   SimpleGrid,
-  Spacer,
   Stack,
   Text,
   Wrap,
@@ -100,6 +99,15 @@ export default function KeywordRadar() {
     }
   }
 
+  // 로드 시 최신 트렌드 기준으로 자동 스캔 (입력 없이 첫 화면부터 채움)
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (didInit.current || !isPro) return;
+    didInit.current = true;
+    runScan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro]);
+
   if (!isPro) {
     return (
       <Box borderWidth="1px" rounded="xl" bg="yellow.50" p={8} textAlign="center">
@@ -123,49 +131,6 @@ export default function KeywordRadar() {
       color="gray.100"
     >
       <style>{KEYFRAMES}</style>
-
-      {/* 헤더 */}
-      <Flex align="center" gap={3} px={5} py={4} borderBottomWidth="1px" borderColor={BORDER}>
-        <Flex
-          w={9}
-          h={9}
-          rounded="md"
-          bg={ACC}
-          color="#062018"
-          align="center"
-          justify="center"
-          fontWeight="bold"
-          fontSize="xs"
-        >
-          DAF
-        </Flex>
-        <Box>
-          <Text fontWeight="bold" lineHeight="1.1">
-            N Content Radar
-          </Text>
-          <Text fontSize="xs" color="gray.500">
-            {isPro ? "Pro Live" : "Free Live"}
-          </Text>
-        </Box>
-        <Spacer />
-        <HStack gap={4} display={{ base: "none", md: "flex" }}>
-          <Stat label="MODE" value="AUTO" />
-          <Stat label="LIVE" value="SYNC" accent />
-          <Stat label="SCAN" value={String(scan).padStart(2, "0")} />
-        </HStack>
-        <Button
-          size="sm"
-          bg={ACC}
-          color="#062018"
-          _hover={{ bg: "#25c78f" }}
-          loading={busy}
-          loadingText="스캔 중"
-          onClick={runScan}
-          disabled={!region && !industry}
-        >
-          즉시 스캔
-        </Button>
-      </Flex>
 
       <Grid
         flex="1"
@@ -220,7 +185,6 @@ export default function KeywordRadar() {
                 _hover={{ bg: "whiteAlpha.100" }}
                 loading={busy}
                 onClick={runScan}
-                disabled={!region && !industry}
               >
                 조준 시작
               </Button>
@@ -365,9 +329,17 @@ export default function KeywordRadar() {
                   px={6}
                 >
                   <Text fontSize="sm">
-                    지역·중심 키워드를 넣고
-                    <br />
-                    <b style={{ color: ACC }}>즉시 스캔</b>을 눌러보세요.
+                    {busy ? (
+                      <>
+                        <b style={{ color: ACC }}>최신 트렌드</b>를 불러오는 중…
+                      </>
+                    ) : (
+                      <>
+                        지역·중심 키워드를 넣고
+                        <br />
+                        <b style={{ color: ACC }}>즉시 스캔</b>을 눌러보세요.
+                      </>
+                    )}
                   </Text>
                 </Flex>
               )}
@@ -407,6 +379,24 @@ export default function KeywordRadar() {
           borderLeftWidth={{ xl: "1px" }}
           borderColor={BORDER}
         >
+          {/* 오른쪽 상단: 상태 + 즉시 스캔 */}
+          <Flex justify="flex-end" align="center" gap={4} mb={5} wrap="wrap">
+            <Stat label="MODE" value="AUTO" />
+            <Stat label="LIVE" value="SYNC" accent />
+            <Stat label="SCAN" value={String(scan).padStart(2, "0")} />
+            <Button
+              size="sm"
+              bg={ACC}
+              color="#062018"
+              _hover={{ bg: "#25c78f" }}
+              loading={busy}
+              loadingText="스캔 중"
+              onClick={runScan}
+            >
+              즉시 스캔
+            </Button>
+          </Flex>
+
           {sel ? (
             <Stack gap={5}>
               <Box>
