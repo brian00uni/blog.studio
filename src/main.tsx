@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import KeywordRadar from "./tools/KeywordRadar";
 import PhotoWriter from "./tools/PhotoWriter";
 import SponsorCheck from "./tools/SponsorCheck";
+import History from "./pages/History";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route path="/keyword" element={<KeywordRadar />} />
                 <Route path="/write" element={<PhotoWriter />} />
                 <Route path="/check" element={<SponsorCheck />} />
+                <Route path="/history" element={<History />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

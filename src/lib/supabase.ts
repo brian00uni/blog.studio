@@ -24,3 +24,12 @@ export interface Profile {
   tier: Tier;
   daily_ai_used: number; // 오늘 사용한 AI 생성 횟수
 }
+
+export interface Draft {
+  id: string;
+  keyword: string | null;
+  content: string;
+  provider: string | null;
+  model: string | null;
+  created_at: string;
+}

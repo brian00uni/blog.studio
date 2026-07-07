@@ -108,6 +108,15 @@ export default async function handler(req: Request): Promise<Response> {
       .eq("id", userId);
   }
 
+  // 6) 히스토리 저장 (실패해도 생성 응답은 정상 반환)
+  await admin.from("drafts").insert({
+    user_id: userId,
+    keyword: body.keyword ?? null,
+    content: text,
+    provider,
+    model,
+  });
+
   return json({ text, model, provider, tier });
 }
 

@@ -15,6 +15,7 @@ const nav = [
   { to: "/keyword", label: "키워드 레이더" },
   { to: "/write", label: "사진 글쓰기" },
   { to: "/check", label: "협찬 조건 점검" },
+  { to: "/history", label: "히스토리" },
 ];
 
 export default function Layout() {
