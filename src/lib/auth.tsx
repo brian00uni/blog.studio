@@ -49,7 +49,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("id, email, tier, daily_ai_used")
       .eq("id", session.user.id)
       .single()
-      .then(({ data }) => setProfile((data as Profile) ?? null));
+      .then(({ data }) => {
+        let p = (data as Profile) ?? null;
+        // [개발 편의] 개발 모드에선 모든 기능을 PRO 로 언락.
+        // 프로덕션 빌드(npm run build)에선 import.meta.env.DEV 가 false 라 원래 등급대로 동작.
+        if (import.meta.env.DEV) {
+          p = {
+            id: session.user!.id,
+            email: session.user!.email ?? "",
+            daily_ai_used: p?.daily_ai_used ?? 0,
+            tier: "pro",
+          };
+        }
+        setProfile(p);
+      });
   }, [session]);
 
   const signOut = async () => {

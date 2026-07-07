@@ -10,6 +10,7 @@ function devApi(env: Record<string, string>): Plugin {
     "ANTHROPIC_API_KEY",
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
+    "DEV_UNLOCK_ALL",
   ];
   return {
     name: "dev-api",

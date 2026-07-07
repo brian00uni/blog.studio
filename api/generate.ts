@@ -48,7 +48,10 @@ export default async function handler(req: Request): Promise<Response> {
     .eq("id", userId)
     .single();
 
-  const tier: Tier = profile?.tier === "pro" ? "pro" : "free";
+  // [개발 편의] DEV_UNLOCK_ALL=true 면 등급 무관하게 PRO 로 취급 (상위 모델 확인용).
+  // 배포 시엔 이 변수를 설정하지 않으면 원래 등급 로직대로 동작.
+  const devUnlock = process.env.DEV_UNLOCK_ALL === "true";
+  const tier: Tier = devUnlock || profile?.tier === "pro" ? "pro" : "free";
   const used = profile?.daily_ai_used ?? 0;
   // [일일 사용 제한 — 추후 활성화] 지금은 제한 없이 사용 가능.
   // if (tier === "free" && used >= FREE_DAILY_LIMIT)
