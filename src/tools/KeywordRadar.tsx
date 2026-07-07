@@ -114,13 +114,13 @@ export default function KeywordRadar() {
   }
 
   return (
-    <Box
+    <Flex
+      direction="column"
+      w="full"
+      flex="1"
+      minH={0}
       bg="#0a0f1a"
       color="gray.100"
-      rounded="xl"
-      borderWidth="1px"
-      borderColor={BORDER}
-      overflow="hidden"
     >
       <style>{KEYFRAMES}</style>
 
@@ -167,9 +167,18 @@ export default function KeywordRadar() {
         </Button>
       </Flex>
 
-      <Grid templateColumns={{ base: "1fr", xl: "260px 1fr 300px" }}>
+      <Grid
+        flex="1"
+        minH={0}
+        templateColumns={{ base: "1fr", xl: "280px 1fr 340px" }}
+      >
         {/* ── 좌: 조준 + 신호 ── */}
-        <Box p={4} borderRightWidth={{ xl: "1px" }} borderColor={BORDER}>
+        <Box
+          p={4}
+          overflowY="auto"
+          borderRightWidth={{ xl: "1px" }}
+          borderColor={BORDER}
+        >
           <Panel title="직접 조준" badge="무료 자동 레이더">
             <Stack gap={2.5}>
               <DarkInput
@@ -264,7 +273,7 @@ export default function KeywordRadar() {
         </Box>
 
         {/* ── 중앙: 레이더 ── */}
-        <Box p={4}>
+        <Flex direction="column" justify="center" p={4} overflowY="auto" minH={0}>
           <Flex justify="center">
             <Box position="relative" w="full" maxW="440px" aspectRatio={1}>
               {/* 링 */}
@@ -389,10 +398,15 @@ export default function KeywordRadar() {
               ))}
             </Wrap>
           )}
-        </Box>
+        </Flex>
 
         {/* ── 우: 판단 에너지 + 브리핑 ── */}
-        <Box p={4} borderLeftWidth={{ xl: "1px" }} borderColor={BORDER}>
+        <Box
+          p={4}
+          overflowY="auto"
+          borderLeftWidth={{ xl: "1px" }}
+          borderColor={BORDER}
+        >
           {sel ? (
             <Stack gap={5}>
               <Box>
@@ -532,7 +546,7 @@ export default function KeywordRadar() {
           </HStack>
         </Box>
       )}
-    </Box>
+    </Flex>
   );
 }
 

@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Badge,
   Box,
@@ -9,6 +9,9 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useAuth } from "../lib/auth";
+
+// 전체 폭·전체 높이로 쓰는 풀블리드 라우트 (컨테이너 폭 제한 없음)
+const FULL_BLEED = ["/keyword"];
 
 const nav = [
   { to: "/", label: "홈", end: true },
@@ -21,9 +24,11 @@ const nav = [
 export default function Layout() {
   const { profile, signOut } = useAuth();
   const isPro = profile?.tier === "pro";
+  const { pathname } = useLocation();
+  const fullBleed = FULL_BLEED.includes(pathname);
 
   return (
-    <Box minH="100vh">
+    <Flex direction="column" minH="100vh">
       <Box as="header" borderBottomWidth="1px" bg="white" position="sticky" top={0} zIndex={10}>
         <Container maxW="5xl">
           <Flex align="center" gap={{ base: 3, md: 6 }} py={3}>
@@ -74,9 +79,15 @@ export default function Layout() {
         </Container>
       </Box>
 
-      <Container maxW="5xl" py={8}>
-        <Outlet />
-      </Container>
-    </Box>
+      {fullBleed ? (
+        <Flex flex="1" minH={0}>
+          <Outlet />
+        </Flex>
+      ) : (
+        <Container maxW="5xl" py={8}>
+          <Outlet />
+        </Container>
+      )}
+    </Flex>
   );
 }
