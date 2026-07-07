@@ -1,16 +1,22 @@
 import { useMemo, useState } from "react";
+import {
+  Box,
+  Heading,
+  HStack,
+  Input,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+} from "@chakra-ui/react";
 
 // 협찬 조건 점검 — AI 없이 클라이언트에서 즉시 계산.
 export default function SponsorCheck() {
   const [text, setText] = useState("");
   const [minChars, setMinChars] = useState(1000);
-  const [minImages, setMinImages] = useState(10);
   const [required, setRequired] = useState(""); // 쉼표로 구분한 필수 키워드
 
-  const charCount = useMemo(
-    () => text.replace(/\s/g, "").length,
-    [text]
-  );
+  const charCount = useMemo(() => text.replace(/\s/g, "").length, [text]);
 
   const keywords = required
     .split(",")
@@ -31,66 +37,61 @@ export default function SponsorCheck() {
   ];
 
   return (
-    <div>
-      <h1 className="mb-1 text-xl font-bold">협찬 조건 점검</h1>
-      <p className="mb-6 text-sm text-gray-500">
+    <Box>
+      <Heading size="lg" mb={1}>
+        협찬 조건 점검
+      </Heading>
+      <Text mb={6} fontSize="sm" color="gray.500">
         발행 전 필수 키워드·글자수 조건을 즉시 확인하세요. (이미지·지도 항목은
         확장 예정)
-      </p>
+      </Text>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-3">
-          <textarea
+      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6}>
+        <Stack gap={3}>
+          <Textarea
             placeholder="완성한 원고를 붙여넣으세요."
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={12}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
           />
-          <div className="flex gap-3">
-            <label className="flex-1 text-sm">
+          <Box>
+            <Text mb={1} fontSize="sm" color="gray.600">
               최소 글자수
-              <input
-                type="number"
-                value={minChars}
-                onChange={(e) => setMinChars(Number(e.target.value))}
-                className="mt-1 w-full rounded border px-2 py-1"
-              />
-            </label>
-            <label className="flex-1 text-sm">
-              최소 이미지 수
-              <input
-                type="number"
-                value={minImages}
-                onChange={(e) => setMinImages(Number(e.target.value))}
-                className="mt-1 w-full rounded border px-2 py-1"
-              />
-            </label>
-          </div>
-          <input
+            </Text>
+            <Input
+              type="number"
+              value={minChars}
+              onChange={(e) => setMinChars(Number(e.target.value))}
+            />
+          </Box>
+          <Input
             placeholder="필수 키워드 (쉼표로 구분)"
             value={required}
             onChange={(e) => setRequired(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
           />
-        </div>
+        </Stack>
 
-        <div className="space-y-2">
+        <Stack gap={2}>
           {checks.map((c, i) => (
-            <div
+            <HStack
               key={i}
-              className={`flex items-center justify-between rounded-lg border px-4 py-3 text-sm ${
-                c.ok
-                  ? "border-emerald-200 bg-emerald-50"
-                  : "border-red-200 bg-red-50"
-              }`}
+              justify="space-between"
+              borderWidth="1px"
+              rounded="lg"
+              px={4}
+              py={3}
+              fontSize="sm"
+              borderColor={c.ok ? "green.200" : "red.200"}
+              bg={c.ok ? "green.50" : "red.50"}
             >
-              <span>{c.ok ? "✅" : "❌"} {c.label}</span>
-              <span className="text-gray-500">{c.detail}</span>
-            </div>
+              <Text>
+                {c.ok ? "✅" : "❌"} {c.label}
+              </Text>
+              <Text color="gray.500">{c.detail}</Text>
+            </HStack>
           ))}
-        </div>
-      </div>
-    </div>
+        </Stack>
+      </SimpleGrid>
+    </Box>
   );
 }

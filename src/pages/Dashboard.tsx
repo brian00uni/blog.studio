@@ -1,4 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
+import {
+  Badge,
+  Box,
+  Heading,
+  SimpleGrid,
+  Text,
+} from "@chakra-ui/react";
 import { useAuth } from "../lib/auth";
 
 const tools = [
@@ -27,58 +34,64 @@ export default function Dashboard() {
   const isPro = profile?.tier === "pro";
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">
+    <Box>
+      <Box mb={8}>
+        <Heading size="lg">
           안녕하세요, {session?.user.email?.split("@")[0]}님 👋
-        </h1>
-        <p className="mt-1 text-gray-500">
+        </Heading>
+        <Text mt={1} color="gray.500">
           오늘도 좋은 글 하나 만들어 볼까요?
-          {!isPro && (
-            <>
-              {" "}
-              무료 등급은 하루 AI 생성{" "}
-              <b>3회</b> ({profile?.daily_ai_used ?? 0}/3 사용).
-            </>
-          )}
-        </p>
-      </div>
+        </Text>
+      </Box>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
         {tools.map((t) => {
           const locked = t.badge === "PRO" && !isPro;
-          return (
-            <Link
-              key={t.to}
-              to={locked ? "#" : t.to}
-              className={`rounded-xl border bg-white p-5 transition ${
+          const card = (
+            <Box
+              h="full"
+              bg="white"
+              borderWidth="1px"
+              rounded="xl"
+              p={5}
+              opacity={locked ? 0.6 : 1}
+              cursor={locked ? "not-allowed" : "pointer"}
+              transition="all 0.15s"
+              _hover={
                 locked
-                  ? "cursor-not-allowed opacity-60"
-                  : "hover:border-brand hover:shadow-sm"
-              }`}
+                  ? undefined
+                  : { borderColor: "brand.400", shadow: "sm" }
+              }
             >
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="font-semibold">{t.title}</h2>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${
-                    t.badge === "PRO"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-emerald-100 text-emerald-700"
-                  }`}
+              <Box display="flex" justifyContent="space-between" mb={2}>
+                <Heading size="sm">{t.title}</Heading>
+                <Badge
+                  colorPalette={t.badge === "PRO" ? "yellow" : "green"}
+                  variant="subtle"
                 >
                   {t.badge}
-                </span>
-              </div>
-              <p className="text-sm text-gray-500">{t.desc}</p>
+                </Badge>
+              </Box>
+              <Text fontSize="sm" color="gray.500">
+                {t.desc}
+              </Text>
               {locked && (
-                <p className="mt-3 text-xs font-medium text-amber-600">
+                <Text mt={3} fontSize="xs" fontWeight="medium" color="yellow.600">
                   🔒 PRO 등급에서 이용 가능
-                </p>
+                </Text>
               )}
-            </Link>
+            </Box>
+          );
+
+          return locked ? (
+            <Box key={t.to}>{card}</Box>
+          ) : (
+            <RouterLink key={t.to} to={t.to} style={{ textDecoration: "none" }}>
+              {card}
+            </RouterLink>
           );
         })}
-      </div>
-    </div>
+      </SimpleGrid>
+    </Box>
   );
 }

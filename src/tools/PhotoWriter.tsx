@@ -1,15 +1,34 @@
 import { useState } from "react";
+import {
+  Box,
+  Button,
+  Heading,
+  HStack,
+  Input,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+} from "@chakra-ui/react";
 import { supabase } from "../lib/supabase";
 
 type Provider = "gemini" | "claude";
+
+const ENGINES = [
+  { id: "gemini", label: "Gemini", hint: "기본·빠름" },
+  { id: "claude", label: "Claude", hint: "고품질" },
+] as const;
 
 export default function PhotoWriter() {
   const [keyword, setKeyword] = useState("");
   const [photoNotes, setPhotoNotes] = useState("");
   const [tone, setTone] = useState("친근하고 정보성 있게");
-  const [provider, setProvider] = useState<Provider>("gemini"); // 기본 제미나이
+  const [provider, setProvider] = useState<Provider>("gemini");
   const [result, setResult] = useState("");
-  const [resultMeta, setResultMeta] = useState<{ provider: string; model: string } | null>(null);
+  const [resultMeta, setResultMeta] = useState<{
+    provider: string;
+    model: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,104 +60,109 @@ export default function PhotoWriter() {
   }
 
   return (
-    <div>
-      <h1 className="mb-1 text-xl font-bold">사진 글쓰기</h1>
-      <p className="mb-6 text-sm text-gray-500">
+    <Box>
+      <Heading size="lg" mb={1}>
+        사진 글쓰기
+      </Heading>
+      <Text mb={6} fontSize="sm" color="gray.500">
         키워드와 사진 설명을 넣으면 네이버 블로그 초안을 만들어 드려요.
-      </p>
+      </Text>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-3">
-          {/* AI 제공자 선택 — 기본 Gemini */}
-          <div>
-            <span className="mb-1 block text-xs font-medium text-gray-500">
+      <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6}>
+        <Stack gap={3}>
+          {/* AI 엔진 선택 (기본 Gemini) */}
+          <Box>
+            <Text mb={1} fontSize="xs" fontWeight="medium" color="gray.500">
               AI 엔진
-            </span>
-            <div className="inline-flex rounded-lg border p-0.5">
-              {(
-                [
-                  { id: "gemini", label: "Gemini", hint: "기본·빠름" },
-                  { id: "claude", label: "Claude", hint: "고품질" },
-                ] as const
-              ).map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setProvider(p.id)}
-                  className={`rounded-md px-4 py-1.5 text-sm transition ${
-                    provider === p.id
-                      ? "bg-brand text-white"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  {p.label}
-                  <span
-                    className={`ml-1.5 text-xs ${
-                      provider === p.id ? "text-white/70" : "text-gray-400"
-                    }`}
+            </Text>
+            <HStack gap={1} p={1} bg="gray.100" rounded="lg" w="fit-content">
+              {ENGINES.map((e) => {
+                const active = provider === e.id;
+                return (
+                  <Button
+                    key={e.id}
+                    size="sm"
+                    variant={active ? "solid" : "ghost"}
+                    colorPalette={active ? "brand" : "gray"}
+                    onClick={() => setProvider(e.id)}
                   >
-                    {p.hint}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+                    {e.label}
+                    <Text
+                      as="span"
+                      ml={1.5}
+                      fontSize="xs"
+                      opacity={0.7}
+                      fontWeight="normal"
+                    >
+                      {e.hint}
+                    </Text>
+                  </Button>
+                );
+              })}
+            </HStack>
+          </Box>
 
-          <input
+          <Input
             placeholder="핵심 키워드 (예: 성수동 브런치 카페)"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
           />
-          <textarea
+          <Textarea
             placeholder="사진 설명 — 각 사진에 뭐가 담겼는지 간단히 적어주세요."
             value={photoNotes}
             onChange={(e) => setPhotoNotes(e.target.value)}
             rows={6}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
           />
-          <input
+          <Input
             placeholder="톤"
             value={tone}
             onChange={(e) => setTone(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
           />
-          <button
+          <Button
+            colorPalette="brand"
+            loading={busy}
+            loadingText="AI가 쓰는 중…"
+            disabled={!keyword}
             onClick={generate}
-            disabled={busy || !keyword}
-            className="w-full rounded-lg bg-brand py-2.5 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
           >
-            {busy ? "AI가 쓰는 중…" : "초안 생성"}
-          </button>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-        </div>
+            초안 생성
+          </Button>
+          {error && (
+            <Text fontSize="sm" color="red.500">
+              {error}
+            </Text>
+          )}
+        </Stack>
 
-        <div className="rounded-lg border bg-white p-4">
+        <Box bg="white" borderWidth="1px" rounded="lg" p={4}>
           {result ? (
             <>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs text-gray-400">
+              <HStack justify="space-between" mb={2}>
+                <Text fontSize="xs" color="gray.400">
                   {resultMeta &&
-                    `${resultMeta.provider === "claude" ? "Claude" : "Gemini"} · ${resultMeta.model}`}
-                </span>
-                <button
+                    `${
+                      resultMeta.provider === "claude" ? "Claude" : "Gemini"
+                    } · ${resultMeta.model}`}
+                </Text>
+                <Button
+                  size="xs"
+                  variant="outline"
                   onClick={() => navigator.clipboard.writeText(result)}
-                  className="rounded border px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
                 >
                   📋 복사
-                </button>
-              </div>
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                </Button>
+              </HStack>
+              <Text whiteSpace="pre-wrap" fontSize="sm" lineHeight="tall">
                 {result}
-              </pre>
+              </Text>
             </>
           ) : (
-            <p className="py-20 text-center text-sm text-gray-400">
+            <Text py={20} textAlign="center" fontSize="sm" color="gray.400">
               생성된 초안이 여기에 표시됩니다.
-            </p>
+            </Text>
           )}
-        </div>
-      </div>
-    </div>
+        </Box>
+      </SimpleGrid>
+    </Box>
   );
 }

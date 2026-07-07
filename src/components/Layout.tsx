@@ -1,4 +1,13 @@
 import { NavLink, Outlet } from "react-router-dom";
+import {
+  Badge,
+  Box,
+  Button,
+  Container,
+  Flex,
+  HStack,
+  Text,
+} from "@chakra-ui/react";
 import { useAuth } from "../lib/auth";
 
 const nav = [
@@ -10,52 +19,54 @@ const nav = [
 
 export default function Layout() {
   const { profile, signOut } = useAuth();
+  const isPro = profile?.tier === "pro";
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
-          <span className="text-lg font-bold text-brand">블로그 스튜디오</span>
-          <nav className="flex flex-1 gap-1">
-            {nav.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                end={n.end}
-                className={({ isActive }) =>
-                  `rounded px-3 py-1.5 text-sm ${
-                    isActive
-                      ? "bg-brand/10 font-medium text-brand"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`
-                }
-              >
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3 text-sm">
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                profile?.tier === "pro"
-                  ? "bg-amber-100 text-amber-700"
-                  : "bg-gray-100 text-gray-500"
-              }`}
-            >
-              {profile?.tier === "pro" ? "PRO" : "무료"}
-            </span>
-            <button
-              onClick={signOut}
-              className="text-gray-500 hover:text-gray-900"
-            >
-              로그아웃
-            </button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">
+    <Box minH="100vh">
+      <Box as="header" borderBottomWidth="1px" bg="white" position="sticky" top={0} zIndex={10}>
+        <Container maxW="5xl">
+          <Flex align="center" gap={6} py={3}>
+            <Text fontSize="lg" fontWeight="bold" color="brand.600">
+              블로그 스튜디오
+            </Text>
+
+            <HStack gap={1} flex={1}>
+              {nav.map((n) => (
+                <NavLink key={n.to} to={n.to} end={n.end}>
+                  {({ isActive }) => (
+                    <Box
+                      px={3}
+                      py={1.5}
+                      rounded="md"
+                      fontSize="sm"
+                      fontWeight={isActive ? "medium" : "normal"}
+                      color={isActive ? "brand.700" : "gray.600"}
+                      bg={isActive ? "brand.50" : "transparent"}
+                      _hover={{ bg: isActive ? "brand.50" : "gray.100" }}
+                      transition="background 0.15s"
+                    >
+                      {n.label}
+                    </Box>
+                  )}
+                </NavLink>
+              ))}
+            </HStack>
+
+            <HStack gap={3}>
+              <Badge colorPalette={isPro ? "yellow" : "gray"} variant="subtle">
+                {isPro ? "PRO" : "무료"}
+              </Badge>
+              <Button size="xs" variant="ghost" onClick={signOut}>
+                로그아웃
+              </Button>
+            </HStack>
+          </Flex>
+        </Container>
+      </Box>
+
+      <Container maxW="5xl" py={8}>
         <Outlet />
-      </main>
-    </div>
+      </Container>
+    </Box>
   );
 }

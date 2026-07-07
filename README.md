@@ -27,7 +27,7 @@ AI 호출은 전부 서버 함수(`/api/generate`)를 경유합니다 — API �
 
 ## 🛠 스택
 
-- **프론트**: Vite · React · TypeScript · Tailwind · React Router · TanStack Query
+- **프론트**: Vite · React · TypeScript · **Chakra UI v3** · React Router · TanStack Query
 - **인증 / DB / 등급**: Supabase (Auth + Postgres + RLS)
 - **AI**: Gemini (`@google/genai`) · Claude (`@anthropic-ai/sdk`)
 - **호스팅 / 서버 함수**: Vercel
@@ -75,6 +75,7 @@ blog.studio/
 ├─ api/
 │  └─ generate.ts        # AI 호출 서버 함수 (Gemini/Claude 분기 + 등급 확인)
 ├─ src/
+│  ├─ theme.ts           # Chakra 테마 (네이버 그린 brand 팔레트)
 │  ├─ lib/               # supabase 클라이언트, 로그인/등급 상태(auth)
 │  ├─ pages/             # 로그인, 대시보드
 │  ├─ components/        # Layout, RequireAuth
