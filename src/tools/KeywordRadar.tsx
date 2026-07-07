@@ -30,18 +30,19 @@ interface Candidate {
   titles: string[];
 }
 
-const ACC = "#2ee6a6"; // 네온 민트
-const BODY = "#0a0f1a"; // 전체 배경
-const SIDEBAR = "#0b1322"; // 좌 사이드바 / 우 subView
-const CARD = "#101c31"; // 카드
-const INPUT = "#16233d"; // 입력 필드
+const ACC = "#2ee6a6";
+const BODY = "#0a0f1a";
+const SIDEBAR = "#0b1322";
+const CARD = "#101c31";
+const INPUT = "#16233d";
 const BORDER = "rgba(255,255,255,0.10)";
 const BORDER2 = "rgba(255,255,255,0.16)";
 
 const KEYFRAMES = `
 @keyframes radarSweep { to { transform: rotate(360deg); } }
 @keyframes tickerScroll { to { transform: translateX(-50%); } }
-@keyframes softPulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+@keyframes softPulse { 0%,100%{opacity:.35;transform:scale(.85)} 50%{opacity:1;transform:scale(1)} }
+@keyframes eqBar { 0%,100%{transform:scaleY(.25)} 50%{transform:scaleY(1)} }
 `;
 
 const METRIC_LABELS: { key: keyof Metrics; label: string }[] = [
@@ -51,7 +52,6 @@ const METRIC_LABELS: { key: keyof Metrics; label: string }[] = [
   { key: "videoFit", label: "영상감" },
 ];
 
-// 점수 → 레이더 좌표(높은 점수일수록 중심에 가깝게, 골든앵글 분산)
 function radarPos(score: number, i: number) {
   const r = 8 + ((100 - score) / 100) * 40;
   const a = i * 137.5 * (Math.PI / 180);
@@ -102,7 +102,6 @@ export default function KeywordRadar() {
     }
   }
 
-  // 로드 시 최신 트렌드 기준 자동 스캔
   const didInit = useRef(false);
   useEffect(() => {
     if (didInit.current || !isPro) return;
@@ -125,7 +124,7 @@ export default function KeywordRadar() {
   }
 
   return (
-    <Flex direction="column" w="full" flex="1" minH={0} bg={BODY} color="gray.100">
+    <Flex direction="column" w="100%" h="100%" flex="1" minH={0} bg={BODY} color="gray.100">
       <style>{KEYFRAMES}</style>
 
       {/* ═══ 본문: 왼쪽 사이드바 | 오른쪽 컨테이너 ═══ */}
@@ -140,14 +139,7 @@ export default function KeywordRadar() {
           overflowY="auto"
           p={5}
         >
-          {/* 입력 카드 */}
-          <Box
-            bg={CARD}
-            borderWidth="1px"
-            borderColor={BORDER2}
-            rounded="lg"
-            p={4}
-          >
+          <Box bg={CARD} borderWidth="1px" borderColor={BORDER2} rounded="lg" p={4}>
             <HStack justify="space-between" mb={3}>
               <Text fontWeight="semibold">직접 조준</Text>
               <Badge bg="rgba(46,230,166,0.15)" color={ACC} fontSize="10px">
@@ -155,24 +147,9 @@ export default function KeywordRadar() {
               </Badge>
             </HStack>
             <Stack gap={3}>
-              <DarkField
-                label="카테고리"
-                placeholder="예: 맛집, 데이트"
-                value={category}
-                onChange={setCategory}
-              />
-              <DarkField
-                label="지역"
-                placeholder="예: 성수동, 강남"
-                value={region}
-                onChange={setRegion}
-              />
-              <DarkField
-                label="중심 키워드"
-                placeholder="예: 브런치 카페"
-                value={industry}
-                onChange={setIndustry}
-              />
+              <DarkField label="카테고리" placeholder="예: 맛집, 데이트" value={category} onChange={setCategory} />
+              <DarkField label="지역" placeholder="예: 성수동, 강남" value={region} onChange={setRegion} />
+              <DarkField label="중심 키워드" placeholder="예: 브런치 카페" value={industry} onChange={setIndustry} />
               <Box>
                 <FieldLabel>AI 엔진</FieldLabel>
                 <HStack gap={1} p={1} bg={INPUT} rounded="md" borderWidth="1px" borderColor={BORDER2}>
@@ -212,7 +189,7 @@ export default function KeywordRadar() {
             </Stack>
           </Box>
 
-          {/* 정보: 자동 수집 경로 */}
+          {/* 자동 수집 경로 (움직이는 느낌) */}
           <Text fontSize="xs" color="gray.500" mt={5} mb={2} fontWeight="medium">
             자동 수집 경로
           </Text>
@@ -222,7 +199,7 @@ export default function KeywordRadar() {
               { name: "빈틈 탐색", state: busy ? "계산 중" : "대기" },
               { name: "현장 신호", state: "반응 대기" },
               { name: "집단 레이더", state: "대기" },
-            ].map((s) => (
+            ].map((s, idx) => (
               <HStack
                 key={s.name}
                 justify="space-between"
@@ -239,13 +216,16 @@ export default function KeywordRadar() {
                     h={2}
                     rounded="full"
                     bg={ACC}
-                    css={{ animation: "softPulse 1.6s ease-in-out infinite" }}
+                    css={{ animation: `softPulse 1.6s ease-in-out ${idx * 0.2}s infinite` }}
                   />
                   <Text fontSize="sm">{s.name}</Text>
                 </HStack>
-                <Text fontSize="xs" color="gray.500">
-                  {s.state}
-                </Text>
+                <HStack gap={2}>
+                  <Equalizer delay={idx * 0.15} />
+                  <Text fontSize="xs" color="gray.500" minW="44px" textAlign="right">
+                    {s.state}
+                  </Text>
+                </HStack>
               </HStack>
             ))}
           </Stack>
@@ -266,17 +246,7 @@ export default function KeywordRadar() {
             flexWrap="wrap"
           >
             <HStack gap={2}>
-              <Flex
-                w={7}
-                h={7}
-                rounded="md"
-                bg={ACC}
-                color="#062018"
-                align="center"
-                justify="center"
-                fontWeight="bold"
-                fontSize="10px"
-              >
+              <Flex w={7} h={7} rounded="md" bg={ACC} color="#062018" align="center" justify="center" fontWeight="bold" fontSize="10px">
                 DAF
               </Flex>
               <Text fontWeight="bold">실시간 트렌드 레이더</Text>
@@ -302,144 +272,149 @@ export default function KeywordRadar() {
 
           {/* contents: content(레이더) + subView(브리핑) */}
           <Flex flex="1" minH={0} direction={{ base: "column", xl: "row" }}>
-            {/* content: 레이더 */}
-            <Flex
-              direction="column"
-              flex="1"
-              minH={0}
-              overflowY="auto"
-              justify="center"
-              align="center"
-              p={4}
-            >
-              <Box position="relative" w="full" maxW="440px" aspectRatio={1}>
-                {[100, 66, 33].map((s) => (
+            {/* content: 레이더 (꽉 차게 + 뱃지 오버레이) */}
+            <Box flex="1" minH={{ base: "460px", xl: 0 }} position="relative" overflow="hidden" p={4}>
+              <Flex h="full" align="center" justify="center">
+                <Box position="relative" w="min(100%, 62vh)" maxW="760px" aspectRatio={1}>
+                  {[100, 66, 33].map((s) => (
+                    <Box
+                      key={s}
+                      position="absolute"
+                      top="50%"
+                      left="50%"
+                      w={`${s}%`}
+                      h={`${s}%`}
+                      transform="translate(-50%, -50%)"
+                      rounded="full"
+                      borderWidth="1px"
+                      borderColor={BORDER}
+                    />
+                  ))}
+                  <Box position="absolute" top="50%" left={0} right={0} h="1px" bg={BORDER} />
+                  <Box position="absolute" left="50%" top={0} bottom={0} w="1px" bg={BORDER} />
                   <Box
-                    key={s}
+                    position="absolute"
+                    inset={0}
+                    rounded="full"
+                    css={{
+                      background: `conic-gradient(from 0deg, transparent 0deg, ${ACC}33 40deg, transparent 70deg)`,
+                      animation: "radarSweep 4s linear infinite",
+                    }}
+                  />
+                  <Box
                     position="absolute"
                     top="50%"
                     left="50%"
-                    w={`${s}%`}
-                    h={`${s}%`}
-                    transform="translate(-50%, -50%)"
+                    transform="translate(-50%,-50%)"
+                    w={3}
+                    h={3}
                     rounded="full"
-                    borderWidth="1px"
-                    borderColor={BORDER}
+                    bg={ACC}
+                    boxShadow={`0 0 12px ${ACC}`}
                   />
-                ))}
-                <Box position="absolute" top="50%" left={0} right={0} h="1px" bg={BORDER} />
-                <Box position="absolute" left="50%" top={0} bottom={0} w="1px" bg={BORDER} />
-                <Box
-                  position="absolute"
-                  inset={0}
-                  rounded="full"
-                  css={{
-                    background: `conic-gradient(from 0deg, transparent 0deg, ${ACC}33 40deg, transparent 70deg)`,
-                    animation: "radarSweep 4s linear infinite",
-                  }}
-                />
-                <Box
-                  position="absolute"
-                  top="50%"
-                  left="50%"
-                  transform="translate(-50%,-50%)"
-                  w={3}
-                  h={3}
-                  rounded="full"
-                  bg={ACC}
-                  boxShadow={`0 0 12px ${ACC}`}
-                />
-                {candidates.map((c, i) => {
-                  const p = radarPos(c.score, i);
-                  const active = i === selected;
-                  return (
-                    <Box
-                      key={c.keyword + i}
-                      position="absolute"
-                      left={p.left}
-                      top={p.top}
-                      transform="translate(-50%, -50%)"
-                      onClick={() => setSelected(i)}
-                      cursor="pointer"
-                      zIndex={active ? 3 : 1}
-                    >
+                  {candidates.map((c, i) => {
+                    const p = radarPos(c.score, i);
+                    const active = i === selected;
+                    return (
                       <Box
-                        px={2}
-                        py={0.5}
-                        rounded="full"
-                        fontSize="10px"
-                        whiteSpace="nowrap"
-                        bg={active ? ACC : "rgba(46,230,166,0.12)"}
-                        color={active ? "#062018" : ACC}
-                        borderWidth="1px"
-                        borderColor={active ? ACC : "rgba(46,230,166,0.3)"}
-                        fontWeight={active ? "bold" : "normal"}
-                        boxShadow={active ? `0 0 10px ${ACC}` : "none"}
-                        _hover={{ bg: ACC, color: "#062018" }}
+                        key={c.keyword + i}
+                        position="absolute"
+                        left={p.left}
+                        top={p.top}
+                        transform="translate(-50%, -50%)"
+                        onClick={() => setSelected(i)}
+                        cursor="pointer"
+                        zIndex={active ? 3 : 1}
                       >
-                        {c.keyword.length > 10
-                          ? c.keyword.slice(0, 10) + "…"
-                          : c.keyword}
+                        <Box
+                          px={2}
+                          py={0.5}
+                          rounded="full"
+                          fontSize="10px"
+                          whiteSpace="nowrap"
+                          bg={active ? ACC : "rgba(46,230,166,0.12)"}
+                          color={active ? "#062018" : ACC}
+                          borderWidth="1px"
+                          borderColor={active ? ACC : "rgba(46,230,166,0.3)"}
+                          fontWeight={active ? "bold" : "normal"}
+                          boxShadow={active ? `0 0 10px ${ACC}` : "none"}
+                          _hover={{ bg: ACC, color: "#062018" }}
+                        >
+                          {c.keyword.length > 10 ? c.keyword.slice(0, 10) + "…" : c.keyword}
+                        </Box>
                       </Box>
-                    </Box>
-                  );
-                })}
+                    );
+                  })}
 
-                {candidates.length === 0 && (
-                  <Flex
-                    position="absolute"
-                    inset={0}
-                    align="center"
-                    justify="center"
-                    color="gray.500"
-                    textAlign="center"
-                    px={6}
-                  >
-                    <Text fontSize="sm">
-                      {busy ? (
-                        <>
-                          <b style={{ color: ACC }}>최신 트렌드</b>를 불러오는 중…
-                        </>
-                      ) : (
-                        <>
-                          지역·중심 키워드를 넣고
-                          <br />
-                          <b style={{ color: ACC }}>즉시 스캔</b>을 눌러보세요.
-                        </>
-                      )}
-                    </Text>
-                  </Flex>
-                )}
-              </Box>
-
-              {candidates.length > 0 && (
-                <Wrap gap={2} mt={4} justify="center" maxW="640px">
-                  {candidates.map((c, i) => (
-                    <HStack
-                      key={c.keyword + i}
-                      gap={2}
-                      px={3}
-                      py={1}
-                      rounded="full"
-                      cursor="pointer"
-                      onClick={() => setSelected(i)}
-                      bg={i === selected ? "rgba(46,230,166,0.15)" : CARD}
-                      borderWidth="1px"
-                      borderColor={i === selected ? ACC : BORDER}
-                    >
-                      <Text fontSize="sm">{c.keyword}</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={ACC}>
-                        {c.score}
+                  {candidates.length === 0 && (
+                    <Flex position="absolute" inset={0} align="center" justify="center" color="gray.500" textAlign="center" px={6}>
+                      <Text fontSize="sm">
+                        {busy ? (
+                          <>
+                            <b style={{ color: ACC }}>최신 트렌드</b>를 불러오는 중…
+                          </>
+                        ) : (
+                          <>
+                            지역·중심 키워드를 넣고
+                            <br />
+                            <b style={{ color: ACC }}>즉시 스캔</b>을 눌러보세요.
+                          </>
+                        )}
                       </Text>
-                    </HStack>
-                  ))}
-                </Wrap>
-              )}
-            </Flex>
+                    </Flex>
+                  )}
+                </Box>
+              </Flex>
 
-            {/* subView: 판단 에너지 + 브리핑 */}
+              {/* 레이어 위에 얹은 느낌의 플로팅 키워드 뱃지 */}
+              {candidates.length > 0 && (
+                <Box
+                  position="absolute"
+                  left="50%"
+                  bottom={4}
+                  transform="translateX(-50%)"
+                  maxW="calc(100% - 32px)"
+                  bg="rgba(9,14,24,0.72)"
+                  borderWidth="1px"
+                  borderColor={BORDER2}
+                  rounded="xl"
+                  boxShadow="0 8px 28px rgba(0,0,0,0.5)"
+                  px={3}
+                  py={2}
+                  css={{ backdropFilter: "blur(10px)" }}
+                >
+                  <HStack gap={2} overflowX="auto" css={{ scrollbarWidth: "thin" }} maxW="100%">
+                    {candidates.map((c, i) => (
+                      <HStack
+                        key={c.keyword + i}
+                        gap={1.5}
+                        px={3}
+                        py={1}
+                        rounded="full"
+                        flexShrink={0}
+                        cursor="pointer"
+                        onClick={() => setSelected(i)}
+                        bg={i === selected ? "rgba(46,230,166,0.18)" : INPUT}
+                        borderWidth="1px"
+                        borderColor={i === selected ? ACC : BORDER}
+                        _hover={{ borderColor: ACC }}
+                      >
+                        <Text fontSize="sm" whiteSpace="nowrap">
+                          {c.keyword}
+                        </Text>
+                        <Text fontSize="sm" fontWeight="bold" color={ACC}>
+                          {c.score}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </HStack>
+                </Box>
+              )}
+            </Box>
+
+            {/* subView: 섹션별 카드 */}
             <Box
-              w={{ base: "full", xl: "340px" }}
+              w={{ base: "full", xl: "360px" }}
               flexShrink={0}
               bg={SIDEBAR}
               borderLeftWidth={{ xl: "1px" }}
@@ -449,11 +424,9 @@ export default function KeywordRadar() {
               p={4}
             >
               {sel ? (
-                <Stack gap={5}>
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">
-                      선택 키워드
-                    </Text>
+                <Stack gap={3}>
+                  {/* 선택 키워드 */}
+                  <Section title="선택 키워드">
                     <Text fontSize="lg" fontWeight="bold" color={ACC}>
                       {sel.keyword}
                     </Text>
@@ -462,26 +435,33 @@ export default function KeywordRadar() {
                         {sel.reasons[0]}
                       </Text>
                     )}
-                  </Box>
+                    {sel.tags.length > 0 && (
+                      <Wrap gap={1} mt={3}>
+                        {sel.tags.map((t, i) => (
+                          <Badge key={i} bg={INPUT} color={ACC} rounded="full">
+                            #{t.replace(/^#/, "")}
+                          </Badge>
+                        ))}
+                      </Wrap>
+                    )}
+                  </Section>
 
-                  <HStack gap={4} align="center">
-                    <Gauge score={sel.score} />
-                    <SimpleGrid columns={2} gap={2} flex={1}>
-                      {METRIC_LABELS.map((m) => (
-                        <MetricTile
-                          key={m.key}
-                          label={m.label}
-                          value={sel.metrics[m.key]}
-                        />
-                      ))}
-                    </SimpleGrid>
-                  </HStack>
+                  {/* 판단 에너지 */}
+                  <Section title="판단 에너지">
+                    <HStack gap={4} align="center">
+                      <Gauge score={sel.score} />
+                      <SimpleGrid columns={2} gap={2} flex={1}>
+                        {METRIC_LABELS.map((m) => (
+                          <MetricTile key={m.key} label={m.label} value={sel.metrics[m.key]} />
+                        ))}
+                      </SimpleGrid>
+                    </HStack>
+                  </Section>
 
-                  <Box>
-                    <HStack justify="space-between" mb={2}>
-                      <Text fontSize="sm" fontWeight="medium">
-                        브리핑
-                      </Text>
+                  {/* 브리핑 */}
+                  <Section
+                    title="브리핑"
+                    action={
                       <Button
                         size="2xs"
                         variant="outline"
@@ -496,7 +476,8 @@ export default function KeywordRadar() {
                       >
                         복사
                       </Button>
-                    </HStack>
+                    }
+                  >
                     <Stack gap={1.5}>
                       {sel.reasons.map((r, i) => (
                         <Text key={i} fontSize="sm" color="gray.300">
@@ -504,18 +485,16 @@ export default function KeywordRadar() {
                         </Text>
                       ))}
                     </Stack>
-                  </Box>
+                  </Section>
 
-                  <Box>
-                    <Text fontSize="sm" fontWeight="medium" mb={2}>
-                      추천 제목
-                    </Text>
+                  {/* 추천 제목 */}
+                  <Section title="추천 제목">
                     <Stack gap={2}>
                       {sel.titles.map((t, i) => (
                         <HStack
                           key={i}
                           justify="space-between"
-                          bg={CARD}
+                          bg={INPUT}
                           borderWidth="1px"
                           borderColor={BORDER}
                           rounded="md"
@@ -525,28 +504,13 @@ export default function KeywordRadar() {
                           <Text fontSize="sm" flex={1}>
                             {t}
                           </Text>
-                          <Button
-                            size="2xs"
-                            variant="ghost"
-                            color={ACC}
-                            onClick={() => navigator.clipboard.writeText(t)}
-                          >
+                          <Button size="2xs" variant="ghost" color={ACC} onClick={() => navigator.clipboard.writeText(t)}>
                             복사
                           </Button>
                         </HStack>
                       ))}
                     </Stack>
-                  </Box>
-
-                  {sel.tags.length > 0 && (
-                    <Wrap gap={1}>
-                      {sel.tags.map((t, i) => (
-                        <Badge key={i} bg="whiteAlpha.100" color={ACC} rounded="full">
-                          #{t.replace(/^#/, "")}
-                        </Badge>
-                      ))}
-                    </Wrap>
-                  )}
+                  </Section>
                 </Stack>
               ) : (
                 <Flex h="full" minH="200px" align="center" justify="center" color="gray.600">
@@ -559,21 +523,9 @@ export default function KeywordRadar() {
       </Flex>
 
       {/* ═══ footer: 라이브 피드 (하단 고정) ═══ */}
-      <Box
-        flexShrink={0}
-        borderTopWidth="1px"
-        borderColor={BORDER}
-        bg="#070b12"
-        py={2}
-        overflow="hidden"
-      >
+      <Box flexShrink={0} borderTopWidth="1px" borderColor={BORDER} bg="#070b12" py={2} overflow="hidden">
         {feed.length > 0 ? (
-          <HStack
-            gap={8}
-            minW="max-content"
-            css={{ animation: "tickerScroll 22s linear infinite" }}
-            px={4}
-          >
+          <HStack gap={8} minW="max-content" css={{ animation: "tickerScroll 22s linear infinite" }} px={4}>
             {[...feed, ...feed].map((c, i) => (
               <HStack key={i} gap={2} flexShrink={0}>
                 <Text fontSize="xs" color={ACC} fontWeight="bold">
@@ -595,15 +547,7 @@ export default function KeywordRadar() {
   );
 }
 
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
+function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <Box>
       <Text fontSize="10px" color="gray.500">
@@ -613,6 +557,49 @@ function Stat({
         {value}
       </Text>
     </Box>
+  );
+}
+
+function Section({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box bg={CARD} borderWidth="1px" borderColor={BORDER2} rounded="lg" p={4}>
+      <HStack justify="space-between" mb={2.5}>
+        <Text fontSize="xs" color="gray.500" fontWeight="medium" textTransform="uppercase" letterSpacing="0.05em">
+          {title}
+        </Text>
+        {action}
+      </HStack>
+      {children}
+    </Box>
+  );
+}
+
+function Equalizer({ delay = 0 }: { delay?: number }) {
+  const bars = [0, 0.18, 0.36, 0.12];
+  return (
+    <HStack gap="2px" h="12px" align="flex-end">
+      {bars.map((d, i) => (
+        <Box
+          key={i}
+          w="2.5px"
+          h="full"
+          bg={ACC}
+          rounded="1px"
+          css={{
+            transformOrigin: "bottom",
+            animation: `eqBar 0.9s ease-in-out ${delay + d}s infinite`,
+          }}
+        />
+      ))}
+    </HStack>
   );
 }
 
@@ -656,7 +643,7 @@ function DarkField({
 
 function MetricTile({ label, value }: { label: string; value: number }) {
   return (
-    <Box bg={CARD} borderWidth="1px" borderColor={BORDER} rounded="md" px={2.5} py={1.5}>
+    <Box bg={INPUT} borderWidth="1px" borderColor={BORDER} rounded="md" px={2.5} py={1.5}>
       <Text fontSize="10px" color="gray.500">
         {label}
       </Text>

@@ -10,8 +10,9 @@ import {
 } from "@chakra-ui/react";
 import { useAuth } from "../lib/auth";
 
-// 전체 폭·전체 높이로 쓰는 풀블리드 라우트 (컨테이너 폭 제한 없음)
+// 전체 폭·전체 높이 + 다크 헤더로 쓰는 풀블리드 라우트
 const FULL_BLEED = ["/keyword"];
+const ACC = "#2ee6a6";
 
 const nav = [
   { to: "/", label: "홈", end: true },
@@ -26,16 +27,26 @@ export default function Layout() {
   const isPro = profile?.tier === "pro";
   const { pathname } = useLocation();
   const fullBleed = FULL_BLEED.includes(pathname);
+  const dark = fullBleed; // 키워드 레이더에서만 다크 헤더
 
   return (
     <Flex direction="column" minH="100vh">
-      <Box as="header" borderBottomWidth="1px" bg="white" position="sticky" top={0} zIndex={10}>
-        <Container maxW="5xl">
+      <Box
+        as="header"
+        borderBottomWidth="1px"
+        bg={dark ? "#0b1322" : "white"}
+        borderColor={dark ? "rgba(255,255,255,0.10)" : "gray.200"}
+        color={dark ? "gray.100" : "inherit"}
+        position="sticky"
+        top={0}
+        zIndex={10}
+      >
+        <Container maxW={fullBleed ? "full" : "5xl"}>
           <Flex align="center" gap={{ base: 3, md: 6 }} py={3}>
             <Text
               fontSize="lg"
               fontWeight="bold"
-              color="brand.600"
+              color={dark ? ACC : "brand.600"}
               flexShrink={0}
             >
               블로그 스튜디오
@@ -54,9 +65,31 @@ export default function Layout() {
                         fontSize="sm"
                         whiteSpace="nowrap"
                         fontWeight={isActive ? "medium" : "normal"}
-                        color={isActive ? "brand.700" : "gray.600"}
-                        bg={isActive ? "brand.50" : "transparent"}
-                        _hover={{ bg: isActive ? "brand.50" : "gray.100" }}
+                        color={
+                          isActive
+                            ? dark
+                              ? ACC
+                              : "brand.700"
+                            : dark
+                              ? "gray.400"
+                              : "gray.600"
+                        }
+                        bg={
+                          isActive
+                            ? dark
+                              ? "rgba(46,230,166,0.12)"
+                              : "brand.50"
+                            : "transparent"
+                        }
+                        _hover={{
+                          bg: isActive
+                            ? dark
+                              ? "rgba(46,230,166,0.12)"
+                              : "brand.50"
+                            : dark
+                              ? "whiteAlpha.100"
+                              : "gray.100",
+                        }}
                         transition="background 0.15s"
                       >
                         {n.label}
@@ -71,7 +104,13 @@ export default function Layout() {
               <Badge colorPalette={isPro ? "yellow" : "gray"} variant="subtle">
                 {isPro ? "PRO" : "무료"}
               </Badge>
-              <Button size="xs" variant="ghost" onClick={signOut}>
+              <Button
+                size="xs"
+                variant="ghost"
+                color={dark ? "gray.300" : undefined}
+                _hover={{ bg: dark ? "whiteAlpha.100" : "gray.100" }}
+                onClick={signOut}
+              >
                 로그아웃
               </Button>
             </HStack>
