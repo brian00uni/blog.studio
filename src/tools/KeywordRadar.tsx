@@ -30,19 +30,22 @@ interface Candidate {
   titles: string[];
 }
 
-const ACC = "#fbbf24"; // 엠버 옐로우 (네온 액센트)
+const ACC = "#fbbf24"; // 엠버 옐로우 (주색)
+const ACC_D = "#f59e0b"; // 진한 엠버 (호버)
+const INK = "#241a00"; // 엠버 위 텍스트
 const BODY = "#0a0f1a";
 const SIDEBAR = "#0b1322";
 const CARD = "#101c31";
 const INPUT = "#16233d";
 const BORDER = "rgba(255,255,255,0.10)";
 const BORDER2 = "rgba(255,255,255,0.16)";
+const A = (o: number) => `rgba(251,191,36,${o})`; // 엠버 알파
 
 const KEYFRAMES = `
 @keyframes radarSweep { to { transform: rotate(360deg); } }
 @keyframes tickerScroll { to { transform: translateX(-50%); } }
 @keyframes softPulse { 0%,100%{opacity:.35;transform:scale(.85)} 50%{opacity:1;transform:scale(1)} }
-@keyframes eqBar { 0%,100%{transform:scaleY(.25)} 50%{transform:scaleY(1)} }
+@keyframes eqBar { 0%,100%{transform:scaleY(.35)} 50%{transform:scaleY(1)} }
 `;
 
 const METRIC_LABELS: { key: keyof Metrics; label: string }[] = [
@@ -58,6 +61,12 @@ function radarPos(score: number, i: number) {
   return { left: `${50 + r * Math.cos(a)}%`, top: `${50 + r * Math.sin(a)}%` };
 }
 
+function signalLabel(score: number) {
+  if (score >= 85) return "강한 신호";
+  if (score >= 72) return "양호 신호";
+  return "관망";
+}
+
 export default function KeywordRadar() {
   const { profile } = useAuth();
   const isPro = profile?.tier === "pro";
@@ -70,9 +79,11 @@ export default function KeywordRadar() {
   const [selected, setSelected] = useState(0);
   const [busy, setBusy] = useState(false);
   const [scan, setScan] = useState(0);
+  const [lastScan, setLastScan] = useState("--:--");
   const [error, setError] = useState<string | null>(null);
 
   const sel = candidates[selected];
+  const top = candidates[0];
   const feed = useMemo(() => candidates.slice(0, 8), [candidates]);
 
   async function runScan() {
@@ -95,6 +106,9 @@ export default function KeywordRadar() {
       setCandidates(data.candidates);
       setSelected(0);
       setScan((n) => n + 1);
+      setLastScan(
+        new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "알 수 없는 오류");
     } finally {
@@ -109,6 +123,26 @@ export default function KeywordRadar() {
     runScan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPro]);
+
+  function saveReport(c: Candidate) {
+    const text =
+      `키워드: ${c.keyword} (${c.score}점, ${signalLabel(c.score)})\n` +
+      `카테고리: ${category || "전체"}\n\n` +
+      `[지표]\n` +
+      METRIC_LABELS.map((m) => `- ${m.label}: ${c.metrics[m.key]}`).join("\n") +
+      `\n\n[왜 보이는가]\n` +
+      c.reasons.map((r) => `- ${r}`).join("\n") +
+      `\n\n[추천 제목]\n` +
+      c.titles.map((t) => `- ${t}`).join("\n");
+    const url = URL.createObjectURL(
+      new Blob([text], { type: "text/plain;charset=utf-8" })
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${c.keyword}_리포트.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   if (!isPro) {
     return (
@@ -127,9 +161,8 @@ export default function KeywordRadar() {
     <Flex direction="column" w="100%" h="100%" flex="1" minH={0} bg={BODY} color="gray.100">
       <style>{KEYFRAMES}</style>
 
-      {/* ═══ 본문: 왼쪽 사이드바 | 오른쪽 컨테이너 ═══ */}
       <Flex flex="1" minH={0} direction={{ base: "column", lg: "row" }}>
-        {/* ── 왼쪽: 메뉴단 (input / info) ── */}
+        {/* ── 왼쪽: 흐름 / 자동 수집 경로 / 직접 조준 ── */}
         <Box
           w={{ base: "full", lg: "300px" }}
           flexShrink={0}
@@ -139,17 +172,88 @@ export default function KeywordRadar() {
           overflowY="auto"
           p={5}
         >
+          {/* 흐름 상태 카드 */}
           <Box bg={CARD} borderWidth="1px" borderColor={BORDER2} rounded="lg" p={4}>
-            <HStack justify="space-between" mb={3}>
+            <Text fontSize="xs" color="gray.500">
+              4시간 흐름
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold" lineHeight="1.1">
+              스캔 {scan}
+            </Text>
+            <Text fontSize="xs" color="gray.500" mt={1}>
+              최근 흐름을 유지하며 새 변화를 감지하는 중
+            </Text>
+          </Box>
+
+          {/* 자동 수집 경로 (바 차트) */}
+          <Text fontSize="xs" color="gray.500" mt={5} mb={2} fontWeight="medium">
+            자동 수집 경로
+          </Text>
+          <Stack gap={2}>
+            {[
+              { name: "상승 신호", state: "흐름 반영" },
+              { name: "빈틈 탐색", state: busy ? "빈틈 계산 중" : "대기" },
+              { name: "현장 신호", state: "반응 대기" },
+              { name: "집단 레이더", state: "대기" },
+            ].map((s, idx) => {
+              const active = busy ? idx === 1 : idx === 0;
+              return (
+                <HStack
+                  key={s.name}
+                  justify="space-between"
+                  bg={CARD}
+                  borderWidth="1px"
+                  borderColor={active ? ACC : BORDER}
+                  rounded="md"
+                  px={3}
+                  py={2.5}
+                >
+                  <HStack gap={2.5} align="start">
+                    <Box
+                      mt={1}
+                      w={2}
+                      h={2}
+                      rounded="full"
+                      bg={ACC}
+                      css={{ animation: `softPulse 1.6s ease-in-out ${idx * 0.2}s infinite` }}
+                    />
+                    <Box>
+                      <Text fontSize="sm" fontWeight="medium">
+                        {s.name}
+                      </Text>
+                      <Text fontSize="xs" color={active ? ACC : "gray.500"}>
+                        {s.state}
+                      </Text>
+                    </Box>
+                  </HStack>
+                  <BarChart active={active} />
+                </HStack>
+              );
+            })}
+          </Stack>
+
+          {/* 직접 조준 */}
+          <Box
+            mt={5}
+            bg={CARD}
+            borderWidth="1px"
+            borderColor={BORDER2}
+            rounded="lg"
+            p={4}
+          >
+            <HStack justify="space-between" mb={1}>
               <Text fontWeight="semibold">직접 조준</Text>
-              <Badge bg="rgba(251,191,36,0.15)" color={ACC} fontSize="10px">
-                자동 레이더
+              <Badge bg={A(0.15)} color={ACC} fontSize="10px">
+                추천
               </Badge>
             </HStack>
+            <Text fontSize="xs" color="gray.500" mb={3}>
+              무료 자동 레이더
+            </Text>
             <Stack gap={3}>
               <DarkField label="카테고리" placeholder="예: 맛집, 데이트" value={category} onChange={setCategory} />
-              <DarkField label="지역" placeholder="예: 성수동, 강남" value={region} onChange={setRegion} />
-              <DarkField label="중심 키워드" placeholder="예: 브런치 카페" value={industry} onChange={setIndustry} />
+              <DarkField label="지역 반응" placeholder="예: 성수동, 강남, 제주" value={region} onChange={setRegion} />
+              <DarkField label="중심 키워드" placeholder="예: 팝업스토어, 데이트 코스" value={industry} onChange={setIndustry} />
               <Box>
                 <FieldLabel>AI 엔진</FieldLabel>
                 <HStack gap={1} p={1} bg={INPUT} rounded="md" borderWidth="1px" borderColor={BORDER2}>
@@ -160,8 +264,8 @@ export default function KeywordRadar() {
                       size="xs"
                       variant={provider === p ? "solid" : "ghost"}
                       bg={provider === p ? ACC : "transparent"}
-                      color={provider === p ? "#241a00" : "gray.400"}
-                      _hover={{ bg: provider === p ? "#f59e0b" : "whiteAlpha.100" }}
+                      color={provider === p ? INK : "gray.400"}
+                      _hover={{ bg: provider === p ? ACC_D : "whiteAlpha.100" }}
                       onClick={() => setProvider(p)}
                     >
                       {p === "gemini" ? "Gemini" : "Claude"}
@@ -172,15 +276,18 @@ export default function KeywordRadar() {
               <Button
                 size="sm"
                 bg={ACC}
-                color="#241a00"
+                color={INK}
                 fontWeight="bold"
-                _hover={{ bg: "#f59e0b" }}
+                _hover={{ bg: ACC_D }}
                 loading={busy}
                 loadingText="스캔 중"
                 onClick={runScan}
               >
                 조준 시작
               </Button>
+              <Text fontSize="10px" color="gray.600">
+                무료 모드는 입력 없이 자동 갱신됩니다.
+              </Text>
               {error && (
                 <Text fontSize="xs" color="red.300">
                   {error}
@@ -188,52 +295,11 @@ export default function KeywordRadar() {
               )}
             </Stack>
           </Box>
-
-          {/* 자동 수집 경로 (움직이는 느낌) */}
-          <Text fontSize="xs" color="gray.500" mt={5} mb={2} fontWeight="medium">
-            자동 수집 경로
-          </Text>
-          <Stack gap={2}>
-            {[
-              { name: "상승 신호", state: "흐름 반영" },
-              { name: "빈틈 탐색", state: busy ? "계산 중" : "대기" },
-              { name: "현장 신호", state: "반응 대기" },
-              { name: "집단 레이더", state: "대기" },
-            ].map((s, idx) => (
-              <HStack
-                key={s.name}
-                justify="space-between"
-                bg={CARD}
-                borderWidth="1px"
-                borderColor={BORDER}
-                rounded="md"
-                px={3}
-                py={2}
-              >
-                <HStack gap={2}>
-                  <Box
-                    w={2}
-                    h={2}
-                    rounded="full"
-                    bg={ACC}
-                    css={{ animation: `softPulse 1.6s ease-in-out ${idx * 0.2}s infinite` }}
-                  />
-                  <Text fontSize="sm">{s.name}</Text>
-                </HStack>
-                <HStack gap={2}>
-                  <Equalizer delay={idx * 0.15} />
-                  <Text fontSize="xs" color="gray.500" minW="44px" textAlign="right">
-                    {s.state}
-                  </Text>
-                </HStack>
-              </HStack>
-            ))}
-          </Stack>
         </Box>
 
         {/* ── 오른쪽: 컨테이너 (header - contents) ── */}
         <Flex direction="column" flex="1" minH={0}>
-          {/* header */}
+          {/* header: MODE / LIVE / SCAN + 즉시 스캔 (DAF 타이틀 없음) */}
           <Flex
             align="center"
             justify="space-between"
@@ -245,35 +311,59 @@ export default function KeywordRadar() {
             flexShrink={0}
             flexWrap="wrap"
           >
-            <HStack gap={2}>
-              <Flex w={7} h={7} rounded="md" bg={ACC} color="#241a00" align="center" justify="center" fontWeight="bold" fontSize="10px">
-                DAF
-              </Flex>
-              <Text fontWeight="bold">실시간 트렌드 레이더</Text>
+            <HStack gap={2.5}>
+              <StatCard label="MODE" value="AUTO" />
+              <StatCard label="LIVE" value="SYNC" accent />
+              <StatCard label="SCAN" value={String(scan).padStart(2, "0")} />
             </HStack>
-            <HStack gap={{ base: 3, md: 5 }}>
-              <Stat label="MODE" value="AUTO" />
-              <Stat label="LIVE" value="SYNC" accent />
-              <Stat label="SCAN" value={String(scan).padStart(2, "0")} />
-              <Button
-                size="sm"
-                bg={ACC}
-                color="#241a00"
-                fontWeight="bold"
-                _hover={{ bg: "#f59e0b" }}
-                loading={busy}
-                loadingText="스캔 중"
-                onClick={runScan}
-              >
-                즉시 스캔
-              </Button>
-            </HStack>
+            <Button
+              size="sm"
+              bg={ACC}
+              color={INK}
+              fontWeight="bold"
+              _hover={{ bg: ACC_D }}
+              loading={busy}
+              loadingText="스캔 중"
+              onClick={runScan}
+            >
+              즉시 스캔
+            </Button>
           </Flex>
 
-          {/* contents: content(레이더) + subView(브리핑) */}
+          {/* contents: content(레이더) + subView */}
           <Flex flex="1" minH={0} direction={{ base: "column", xl: "row" }}>
-            {/* content: 레이더 (꽉 차게 + 뱃지 오버레이) */}
-            <Box flex="1" minH={{ base: "460px", xl: 0 }} position="relative" overflow="hidden" p={4}>
+            {/* content: 레이더 */}
+            <Box flex="1" minH={{ base: "480px", xl: 0 }} position="relative" overflow="hidden" p={4}>
+              {/* 좌상단 TOP SIGNAL / LAST SCAN */}
+              {candidates.length > 0 && (
+                <HStack position="absolute" top={3} left={3} gap={2} zIndex={4}>
+                  <FloatCard label="TOP SIGNAL" value={top ? `${top.keyword} · ${top.score}` : "-"} />
+                  <FloatCard label="LAST SCAN" value={lastScan} />
+                </HStack>
+              )}
+              {/* 우상단 에너지 배지 */}
+              {candidates.length > 0 && (
+                <HStack
+                  position="absolute"
+                  top={3}
+                  right={3}
+                  zIndex={4}
+                  gap={1.5}
+                  bg="rgba(9,14,24,0.72)"
+                  borderWidth="1px"
+                  borderColor={BORDER2}
+                  rounded="full"
+                  px={3}
+                  py={1}
+                  css={{ backdropFilter: "blur(8px)" }}
+                >
+                  <Text color={ACC}>⚡</Text>
+                  <Text fontSize="sm" fontWeight="bold">
+                    {candidates.length} / 12
+                  </Text>
+                </HStack>
+              )}
+
               <Flex h="full" align="center" justify="center">
                 <Box position="relative" w="min(100%, 62vh)" maxW="760px" aspectRatio={1}>
                   {[100, 66, 33].map((s) => (
@@ -297,7 +387,7 @@ export default function KeywordRadar() {
                     inset={0}
                     rounded="full"
                     css={{
-                      background: `conic-gradient(from 0deg, transparent 0deg, ${ACC}33 40deg, transparent 70deg)`,
+                      background: `conic-gradient(from 0deg, transparent 0deg, ${A(0.22)} 40deg, transparent 70deg)`,
                       animation: "radarSweep 4s linear infinite",
                     }}
                   />
@@ -332,13 +422,13 @@ export default function KeywordRadar() {
                           rounded="full"
                           fontSize="10px"
                           whiteSpace="nowrap"
-                          bg={active ? ACC : "rgba(251,191,36,0.12)"}
-                          color={active ? "#241a00" : ACC}
+                          bg={active ? ACC : A(0.12)}
+                          color={active ? INK : ACC}
                           borderWidth="1px"
-                          borderColor={active ? ACC : "rgba(251,191,36,0.3)"}
+                          borderColor={active ? ACC : A(0.3)}
                           fontWeight={active ? "bold" : "normal"}
                           boxShadow={active ? `0 0 10px ${ACC}` : "none"}
-                          _hover={{ bg: ACC, color: "#241a00" }}
+                          _hover={{ bg: ACC, color: INK }}
                         >
                           {c.keyword.length > 10 ? c.keyword.slice(0, 10) + "…" : c.keyword}
                         </Box>
@@ -366,7 +456,7 @@ export default function KeywordRadar() {
                 </Box>
               </Flex>
 
-              {/* 레이어 위에 얹은 느낌의 플로팅 키워드 뱃지 */}
+              {/* 플로팅 키워드 뱃지 */}
               {candidates.length > 0 && (
                 <Box
                   position="absolute"
@@ -394,7 +484,7 @@ export default function KeywordRadar() {
                         flexShrink={0}
                         cursor="pointer"
                         onClick={() => setSelected(i)}
-                        bg={i === selected ? "rgba(251,191,36,0.18)" : INPUT}
+                        bg={i === selected ? A(0.18) : INPUT}
                         borderWidth="1px"
                         borderColor={i === selected ? ACC : BORDER}
                         _hover={{ borderColor: ACC }}
@@ -447,7 +537,14 @@ export default function KeywordRadar() {
                   </Section>
 
                   {/* 판단 에너지 */}
-                  <Section title="판단 에너지">
+                  <Section
+                    title="판단 에너지"
+                    action={
+                      <Text fontSize="xs" fontWeight="bold" color={ACC}>
+                        {signalLabel(sel.score)}
+                      </Text>
+                    }
+                  >
                     <HStack gap={4} align="center">
                       <Gauge score={sel.score} />
                       <SimpleGrid columns={2} gap={2} flex={1}>
@@ -459,25 +556,20 @@ export default function KeywordRadar() {
                   </Section>
 
                   {/* 브리핑 */}
-                  <Section
-                    title="브리핑"
-                    action={
-                      <Button
-                        size="2xs"
-                        variant="outline"
-                        borderColor={BORDER2}
-                        color="gray.300"
-                        onClick={() =>
-                          navigator.clipboard.writeText(
-                            `키워드: ${sel.keyword} (${sel.score}점)\n` +
-                              sel.reasons.map((r) => `- ${r}`).join("\n")
-                          )
-                        }
-                      >
-                        복사
-                      </Button>
-                    }
-                  >
+                  <Section title="브리핑">
+                    <Stack gap={1} fontSize="sm">
+                      <Text color="gray.400">
+                        키워드: <b style={{ color: "#e5e7eb" }}>{sel.keyword}</b>
+                      </Text>
+                      <Text color="gray.400">
+                        판정: 지금 쓰기 ({sel.score}점)
+                      </Text>
+                      <Text color="gray.400">카테고리: {category || "전체"}</Text>
+                    </Stack>
+                    <Box borderTopWidth="1px" borderColor={BORDER} my={3} />
+                    <Text fontSize="xs" color="gray.500" mb={1.5} fontWeight="medium">
+                      왜 보이는가
+                    </Text>
                     <Stack gap={1.5}>
                       {sel.reasons.map((r, i) => (
                         <Text key={i} fontSize="sm" color="gray.300">
@@ -485,6 +577,35 @@ export default function KeywordRadar() {
                         </Text>
                       ))}
                     </Stack>
+                    <HStack gap={2} mt={4}>
+                      <Button
+                        flex={1}
+                        size="sm"
+                        bg={ACC}
+                        color={INK}
+                        fontWeight="bold"
+                        _hover={{ bg: ACC_D }}
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            `키워드: ${sel.keyword} (${sel.score}점)\n` +
+                              sel.reasons.map((r) => `- ${r}`).join("\n")
+                          )
+                        }
+                      >
+                        브리핑 복사
+                      </Button>
+                      <Button
+                        flex={1}
+                        size="sm"
+                        variant="outline"
+                        borderColor={BORDER2}
+                        color="gray.200"
+                        _hover={{ bg: "whiteAlpha.100" }}
+                        onClick={() => saveReport(sel)}
+                      >
+                        리포트 저장
+                      </Button>
+                    </HStack>
                   </Section>
 
                   {/* 추천 제목 */}
@@ -522,7 +643,7 @@ export default function KeywordRadar() {
         </Flex>
       </Flex>
 
-      {/* ═══ footer: 라이브 피드 (하단 고정) ═══ */}
+      {/* ═══ footer: 라이브 피드 ═══ */}
       <Box flexShrink={0} borderTopWidth="1px" borderColor={BORDER} bg="#070b12" py={2} overflow="hidden">
         {feed.length > 0 ? (
           <HStack gap={8} minW="max-content" css={{ animation: "tickerScroll 22s linear infinite" }} px={4}>
@@ -547,13 +668,35 @@ export default function KeywordRadar() {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function StatCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <Box>
+    <Box bg={CARD} borderWidth="1px" borderColor={BORDER} rounded="md" px={3} py={1.5} minW="70px">
       <Text fontSize="10px" color="gray.500">
         {label}
       </Text>
       <Text fontSize="sm" fontWeight="bold" color={accent ? ACC : "gray.100"}>
+        {value}
+      </Text>
+    </Box>
+  );
+}
+
+function FloatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <Box
+      bg="rgba(9,14,24,0.72)"
+      borderWidth="1px"
+      borderColor={BORDER2}
+      rounded="lg"
+      px={3}
+      py={1.5}
+      maxW="220px"
+      css={{ backdropFilter: "blur(8px)" }}
+    >
+      <Text fontSize="10px" color="gray.500">
+        {label}
+      </Text>
+      <Text fontSize="xs" fontWeight="bold" css={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {value}
       </Text>
     </Box>
@@ -582,20 +725,20 @@ function Section({
   );
 }
 
-function Equalizer({ delay = 0 }: { delay?: number }) {
-  const bars = [0, 0.18, 0.36, 0.12];
+function BarChart({ active }: { active?: boolean }) {
+  const bars = [45, 70, 55, 85, 65];
   return (
-    <HStack gap="2px" h="12px" align="flex-end">
-      {bars.map((d, i) => (
+    <HStack gap="2px" h="24px" w="38px" align="flex-end" flexShrink={0}>
+      {bars.map((h, i) => (
         <Box
           key={i}
-          w="2.5px"
-          h="full"
-          bg={ACC}
+          flex={1}
+          h={`${h}%`}
+          bg={active ? ACC : A(0.45)}
           rounded="1px"
           css={{
             transformOrigin: "bottom",
-            animation: `eqBar 0.9s ease-in-out ${delay + d}s infinite`,
+            animation: `eqBar 1.1s ease-in-out ${i * 0.12}s infinite`,
           }}
         />
       ))}
@@ -644,9 +787,14 @@ function DarkField({
 function MetricTile({ label, value }: { label: string; value: number }) {
   return (
     <Box bg={INPUT} borderWidth="1px" borderColor={BORDER} rounded="md" px={2.5} py={1.5}>
-      <Text fontSize="10px" color="gray.500">
-        {label}
-      </Text>
+      <HStack justify="space-between">
+        <Text fontSize="10px" color="gray.500">
+          {label}
+        </Text>
+        <Text fontSize="10px" color={ACC}>
+          ↗
+        </Text>
+      </HStack>
       <Text fontSize="lg" fontWeight="bold" lineHeight="1.1">
         {value}
       </Text>
