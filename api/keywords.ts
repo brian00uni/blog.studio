@@ -2,14 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 
-// 키워드 레이더 — 지역·업종·카테고리로 네이버 블로그 제목/태그 후보를 생성한다.
+// 키워드 레이더 — 지역·업종·카테고리로 네이버 블로그 키워드 후보를 스캔한다.
+// 각 후보에 종합점수 / 4대 지표 / "왜 보이는가" / 추천 제목까지 담아 반환.
 // PRO 전용 (개발 모드 DEV_UNLOCK_ALL 이면 등급 무관 허용).
 
 type Provider = "gemini" | "claude";
 type Tier = "free" | "pro";
 
 const MODELS: Record<Provider, string> = {
-  // PRO 기능이므로 각 제공자의 상위(무료 티어 한도 내) 모델 사용
   gemini: "gemini-2.5-flash",
   claude: "claude-opus-4-8",
 };
@@ -21,9 +21,19 @@ const admin = createClient(
 
 export const config = { runtime: "nodejs" };
 
+export interface Metrics {
+  attention: number; // 주목도
+  momentum: number; // 상승세
+  gap: number; // 빈틈(경쟁 낮음)
+  videoFit: number; // 영상감
+}
 export interface Candidate {
-  title: string;
+  keyword: string;
+  score: number; // 종합 판단 점수 0-100
   tags: string[];
+  metrics: Metrics;
+  reasons: string[]; // 왜 보이는가
+  titles: string[]; // 추천 제목
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -56,14 +66,21 @@ export default async function handler(req: Request): Promise<Response> {
   const model = MODELS[provider];
 
   const system =
-    "당신은 네이버 블로그 SEO 전문가입니다. 검색 유입이 잘 되는 자연스러운 한국어 제목을 제안합니다.";
+    "당신은 네이버 블로그 SEO·트렌드 분석가입니다. 검색 유입이 잘 되는 키워드를 발굴하고 점수화합니다.";
   const prompt = [
     `지역: ${body.region || "(무관)"}`,
     `업종: ${body.industry || "(무관)"}`,
     body.category ? `카테고리: ${body.category}` : "",
     "",
-    "위 조건으로 네이버 블로그 글 제목 후보 8개와, 각 제목에 어울리는 해시태그 3~5개를 제안하세요.",
-    '반드시 아래 JSON 형식으로만 응답하세요: {"candidates":[{"title":"...","tags":["...","..."]}]}',
+    "위 조건으로 지금 시점 검색 유입이 잘 될 네이버 블로그 키워드 후보 12개를 발굴하세요.",
+    "각 후보에 대해 다음을 산출합니다(모두 0~100 정수, 현실적으로 60~95 분포):",
+    "- score: 지금 쓰기 좋은 정도(종합 판단 점수)",
+    "- metrics.attention(주목도), metrics.momentum(상승세), metrics.gap(빈틈=경쟁 낮음), metrics.videoFit(영상감)",
+    "- tags: 해시태그 3~5개",
+    "- reasons: 이 키워드가 지금 보이는 이유 2~3개(한 문장씩)",
+    "- titles: 이 키워드로 쓸 블로그 제목 후보 2~3개",
+    "",
+    '반드시 아래 JSON 형식으로만 응답: {"candidates":[{"keyword":"...","score":88,"tags":["..."],"metrics":{"attention":80,"momentum":75,"gap":66,"videoFit":70},"reasons":["..."],"titles":["..."]}]}',
   ]
     .filter(Boolean)
     .join("\n");
@@ -81,9 +98,9 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
-  const candidates = parseCandidates(raw);
+  const candidates = parseCandidates(raw).sort((a, b) => b.score - a.score);
   if (!candidates.length)
-    return json({ error: "후보 생성에 실패했어요. 다시 시도해 주세요." }, 502);
+    return json({ error: "스캔에 실패했어요. 다시 시도해 주세요." }, 502);
 
   return json({ candidates, model, provider });
 }
@@ -92,7 +109,7 @@ async function callClaude(model: string, system: string, user: string) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const msg = await anthropic.messages.create({
     model,
-    max_tokens: 2000,
+    max_tokens: 4000,
     system,
     messages: [{ role: "user", content: user }],
   });
@@ -112,30 +129,45 @@ async function callGemini(model: string, system: string, user: string) {
   return res.text ?? "";
 }
 
-// 모델 응답에서 JSON 을 관대하게 파싱 (코드펜스/잡텍스트가 섞여도 추출)
+function clampScore(n: unknown): number {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return 70;
+  return Math.max(0, Math.min(100, v));
+}
+
 function parseCandidates(raw: string): Candidate[] {
-  const tryParse = (s: string): Candidate[] => {
+  const build = (s: string): Candidate[] => {
     const obj = JSON.parse(s);
     const arr = Array.isArray(obj) ? obj : obj.candidates;
     if (!Array.isArray(arr)) return [];
     return arr
       .map((c: unknown) => {
-        const o = c as { title?: unknown; tags?: unknown };
+        const o = c as Record<string, unknown>;
+        const m = (o.metrics ?? {}) as Record<string, unknown>;
         return {
-          title: String(o.title ?? "").trim(),
-          tags: Array.isArray(o.tags) ? o.tags.map((t) => String(t)) : [],
-        };
+          keyword: String(o.keyword ?? "").trim(),
+          score: clampScore(o.score),
+          tags: Array.isArray(o.tags) ? o.tags.map(String) : [],
+          metrics: {
+            attention: clampScore(m.attention),
+            momentum: clampScore(m.momentum),
+            gap: clampScore(m.gap),
+            videoFit: clampScore(m.videoFit),
+          },
+          reasons: Array.isArray(o.reasons) ? o.reasons.map(String) : [],
+          titles: Array.isArray(o.titles) ? o.titles.map(String) : [],
+        } as Candidate;
       })
-      .filter((c: Candidate) => c.title);
+      .filter((c: Candidate) => c.keyword);
   };
   try {
-    return tryParse(raw);
+    return build(raw);
   } catch {
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
-    if (start >= 0 && end > start) {
+    const s = raw.indexOf("{");
+    const e = raw.lastIndexOf("}");
+    if (s >= 0 && e > s) {
       try {
-        return tryParse(raw.slice(start, end + 1));
+        return build(raw.slice(s, e + 1));
       } catch {
         /* noop */
       }
