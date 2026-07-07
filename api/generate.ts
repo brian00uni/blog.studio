@@ -15,8 +15,10 @@ type Provider = "gemini" | "claude";
 type Tier = "free" | "pro";
 
 // 제공자 × 등급별 모델 매트릭스
+// ⚠️ gemini-2.5-pro 는 무료 티어 미지원(할당량 0) → 결제 등록된 프로젝트에서만 사용 가능.
+//    Google Cloud 결제 활성화 후 pro 를 "gemini-2.5-pro" 로 바꾸면 됩니다.
 const MODELS: Record<Provider, Record<Tier, string>> = {
-  gemini: { free: "gemini-2.5-flash", pro: "gemini-2.5-pro" },
+  gemini: { free: "gemini-2.5-flash-lite", pro: "gemini-2.5-flash" },
   claude: { free: "claude-haiku-4-5", pro: "claude-opus-4-8" },
 };
 
