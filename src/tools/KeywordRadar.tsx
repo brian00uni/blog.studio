@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 
 type Provider = "gemini" | "claude";
+type Status = "done" | "running" | "waiting";
 interface Metrics {
   attention: number;
   momentum: number;
@@ -84,6 +85,7 @@ export default function KeywordRadar() {
   const [scan, setScan] = useState(0);
   const [lastScan, setLastScan] = useState("--:--");
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState(0); // 자동 수집 경로 진행 포인터
 
   const sel = candidates[selected];
   const top = candidates[0];
@@ -126,6 +128,12 @@ export default function KeywordRadar() {
     runScan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPro]);
+
+  // 자동 수집 경로: 진행 포인터가 계속 돌며 완료→진행중→대기 상태를 만든다
+  useEffect(() => {
+    const t = setInterval(() => setStep((s) => (s + 1) % 5), busy ? 700 : 1500);
+    return () => clearInterval(t);
+  }, [busy]);
 
   function saveReport(c: Candidate) {
     const text =
@@ -188,48 +196,55 @@ export default function KeywordRadar() {
             </Text>
           </Box>
 
-          {/* 자동 수집 경로 (바 차트) */}
+          {/* 자동 수집 경로 (완료/진행중/대기 차등) */}
           <Text fontSize="xs" color="gray.500" mt={5} mb={2} fontWeight="medium">
             자동 수집 경로
           </Text>
           <Stack gap={2}>
-            {[
-              { name: "상승 신호", state: "흐름 반영" },
-              { name: "빈틈 탐색", state: busy ? "빈틈 계산 중" : "대기" },
-              { name: "현장 신호", state: "반응 대기" },
-              { name: "집단 레이더", state: "대기" },
-            ].map((s, idx) => {
-              const active = busy ? idx === 1 : idx === 0;
+            {["상승 신호", "빈틈 탐색", "현장 신호", "집단 레이더"].map((name, idx) => {
+              const status: Status =
+                idx < step ? "done" : idx === step ? "running" : "waiting";
+              const running = status === "running";
+              const done = status === "done";
               return (
                 <HStack
-                  key={s.name}
+                  key={name}
                   justify="space-between"
                   bg={CARD}
                   borderWidth="1px"
-                  borderColor={active ? ACC : BORDER}
+                  borderColor={running ? ACC : BORDER}
                   rounded="md"
                   px={3}
                   py={2.5}
+                  opacity={status === "waiting" ? 0.5 : 1}
+                  transition="opacity .3s, border-color .3s"
                 >
                   <HStack gap={2.5} align="start">
-                    <Box
-                      mt={1}
-                      w={2}
-                      h={2}
-                      rounded="full"
-                      bg={ACC}
-                      css={{ animation: `softPulse 1.6s ease-in-out ${idx * 0.2}s infinite` }}
-                    />
+                    <Flex mt="2px" w="14px" h="14px" align="center" justify="center" flexShrink={0}>
+                      {done ? (
+                        <Text fontSize="12px" color={ACC} fontWeight="bold">
+                          ✓
+                        </Text>
+                      ) : (
+                        <Box
+                          w={2}
+                          h={2}
+                          rounded="full"
+                          bg={running ? ACC : "gray.600"}
+                          css={running ? { animation: "softPulse 1s ease-in-out infinite" } : undefined}
+                        />
+                      )}
+                    </Flex>
                     <Box>
                       <Text fontSize="sm" fontWeight="medium">
-                        {s.name}
+                        {name}
                       </Text>
-                      <Text fontSize="xs" color={active ? ACC : "gray.500"}>
-                        {s.state}
+                      <Text fontSize="xs" color={running ? ACC : done ? "gray.400" : "gray.600"}>
+                        {done ? "완료" : running ? "진행중" : "대기"}
                       </Text>
                     </Box>
                   </HStack>
-                  <BarChart active={active} />
+                  <BarChart status={status} />
                 </HStack>
               );
             })}
@@ -745,21 +760,26 @@ function Section({
   );
 }
 
-function BarChart({ active }: { active?: boolean }) {
-  const bars = [45, 70, 55, 85, 65];
+function BarChart({ status }: { status: Status }) {
+  const cfg = {
+    running: { heights: [45, 70, 55, 85, 65], color: ACC, animate: true },
+    done: { heights: [82, 92, 86, 96, 90], color: A(0.7), animate: false },
+    waiting: { heights: [22, 32, 26, 38, 28], color: A(0.22), animate: false },
+  }[status];
   return (
     <HStack gap="2px" h="24px" w="38px" align="flex-end" flexShrink={0}>
-      {bars.map((h, i) => (
+      {cfg.heights.map((h, i) => (
         <Box
           key={i}
           flex={1}
           h={`${h}%`}
-          bg={active ? ACC : A(0.45)}
+          bg={cfg.color}
           rounded="1px"
-          css={{
-            transformOrigin: "bottom",
-            animation: `eqBar 1.1s ease-in-out ${i * 0.12}s infinite`,
-          }}
+          css={
+            cfg.animate
+              ? { transformOrigin: "bottom", animation: `eqBar 0.8s ease-in-out ${i * 0.1}s infinite` }
+              : undefined
+          }
         />
       ))}
     </HStack>
