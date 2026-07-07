@@ -72,7 +72,7 @@ export default async function handler(req: Request): Promise<Response> {
     `업종: ${body.industry || "(무관)"}`,
     body.category ? `카테고리: ${body.category}` : "",
     "",
-    "위 조건으로 지금 시점 검색 유입이 잘 될 네이버 블로그 키워드 후보 12개를 발굴하세요.",
+    "위 조건으로 지금 시점 검색 유입이 잘 될 네이버 블로그 키워드 후보 20개를 발굴하세요(가능한 다양하게).",
     "각 후보에 대해 다음을 산출합니다(모두 0~100 정수, 현실적으로 60~95 분포):",
     "- score: 지금 쓰기 좋은 정도(종합 판단 점수)",
     "- metrics.attention(주목도), metrics.momentum(상승세), metrics.gap(빈틈=경쟁 낮음), metrics.videoFit(영상감)",
@@ -109,7 +109,7 @@ async function callClaude(model: string, system: string, user: string) {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const msg = await anthropic.messages.create({
     model,
-    max_tokens: 4000,
+    max_tokens: 8000,
     system,
     messages: [{ role: "user", content: user }],
   });

@@ -55,8 +55,11 @@ const METRIC_LABELS: { key: keyof Metrics; label: string }[] = [
   { key: "videoFit", label: "영상감" },
 ];
 
+// 점수 기반 반경 + 결정적 지터로 레이더 전체에 골고루 분포
 function radarPos(score: number, i: number) {
-  const r = 8 + ((100 - score) / 100) * 40;
+  const base = 12 + ((100 - score) / 100) * 33; // 12% ~ 45%
+  const jitter = ((i * 53) % 11) - 5; // -5 ~ +5 (결정적)
+  const r = Math.max(7, Math.min(46, base + jitter));
   const a = i * 137.5 * (Math.PI / 180);
   return { left: `${50 + r * Math.cos(a)}%`, top: `${50 + r * Math.sin(a)}%` };
 }
@@ -365,7 +368,7 @@ export default function KeywordRadar() {
               )}
 
               <Flex h="full" align="center" justify="center">
-                <Box position="relative" w="min(100%, 62vh)" maxW="760px" aspectRatio={1}>
+                <Box position="relative" w="min(100%, 82vh)" maxW="960px" aspectRatio={1}>
                   {[100, 66, 33].map((s) => (
                     <Box
                       key={s}
@@ -422,15 +425,20 @@ export default function KeywordRadar() {
                           rounded="full"
                           fontSize="10px"
                           whiteSpace="nowrap"
-                          bg={active ? ACC : A(0.12)}
+                          bg={active ? ACC : "rgba(10,17,30,0.9)"}
                           color={active ? INK : ACC}
                           borderWidth="1px"
-                          borderColor={active ? ACC : A(0.3)}
-                          fontWeight={active ? "bold" : "normal"}
-                          boxShadow={active ? `0 0 10px ${ACC}` : "none"}
-                          _hover={{ bg: ACC, color: INK }}
+                          borderColor={active ? ACC : A(0.45)}
+                          fontWeight={active ? "bold" : "medium"}
+                          boxShadow={
+                            active
+                              ? `0 0 14px ${ACC}`
+                              : "0 2px 8px rgba(0,0,0,0.5)"
+                          }
+                          css={{ backdropFilter: "blur(2px)" }}
+                          _hover={{ bg: ACC, color: INK, borderColor: ACC }}
                         >
-                          {c.keyword.length > 10 ? c.keyword.slice(0, 10) + "…" : c.keyword}
+                          {c.keyword.length > 12 ? c.keyword.slice(0, 12) + "…" : c.keyword}
                         </Box>
                       </Box>
                     );
@@ -643,26 +651,38 @@ export default function KeywordRadar() {
         </Flex>
       </Flex>
 
-      {/* ═══ footer: 라이브 피드 ═══ */}
-      <Box flexShrink={0} borderTopWidth="1px" borderColor={BORDER} bg="#070b12" py={2} overflow="hidden">
-        {feed.length > 0 ? (
-          <HStack gap={8} minW="max-content" css={{ animation: "tickerScroll 22s linear infinite" }} px={4}>
-            {[...feed, ...feed].map((c, i) => (
-              <HStack key={i} gap={2} flexShrink={0}>
-                <Text fontSize="xs" color={ACC} fontWeight="bold">
-                  LIVE
-                </Text>
-                <Text fontSize="xs" color="gray.400">
-                  {c.keyword} · 지금 쓰기 {c.score}
-                </Text>
-              </HStack>
-            ))}
-          </HStack>
-        ) : (
-          <Text px={4} fontSize="xs" color="gray.600">
-            LIVE FEED · 스캔 대기 중
+      {/* ═══ footer: 라이브 피드 (하단 고정) ═══ */}
+      <Box flexShrink={0} borderTopWidth="1px" borderColor={BORDER} bg="#070b12" py={2.5}>
+        <HStack gap={0} align="center">
+          <Text
+            flexShrink={0}
+            px={4}
+            fontSize="xs"
+            fontWeight="bold"
+            color={ACC}
+            letterSpacing="0.08em"
+            borderRightWidth="1px"
+            borderColor={BORDER}
+            mr={4}
+          >
+            LIVE FEED
           </Text>
-        )}
+          <Box flex={1} overflow="hidden">
+            {feed.length > 0 ? (
+              <HStack gap={10} minW="max-content" css={{ animation: "tickerScroll 22s linear infinite" }}>
+                {[...feed, ...feed].map((c, i) => (
+                  <Text key={i} flexShrink={0} fontSize="xs" color="gray.300" fontWeight="medium">
+                    {c.keyword} - 지금 쓰기 - {c.score}
+                  </Text>
+                ))}
+              </HStack>
+            ) : (
+              <Text fontSize="xs" color="gray.600">
+                스캔 대기 중
+              </Text>
+            )}
+          </Box>
+        </HStack>
       </Box>
     </Flex>
   );
