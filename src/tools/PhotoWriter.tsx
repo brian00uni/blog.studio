@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Box,
   Button,
+  Field,
   Heading,
   HStack,
   Input,
@@ -102,22 +103,34 @@ export default function PhotoWriter() {
             </HStack>
           </Box>
 
-          <Input
-            placeholder="핵심 키워드 (예: 성수동 브런치 카페)"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
-          <Textarea
-            placeholder="사진 설명 — 각 사진에 뭐가 담겼는지 간단히 적어주세요."
-            value={photoNotes}
-            onChange={(e) => setPhotoNotes(e.target.value)}
-            rows={6}
-          />
-          <Input
-            placeholder="톤"
-            value={tone}
-            onChange={(e) => setTone(e.target.value)}
-          />
+          <Field.Root required>
+            <Field.Label>
+              핵심 키워드 <Field.RequiredIndicator />
+            </Field.Label>
+            <Input
+              placeholder="예: 성수동 브런치 카페"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          </Field.Root>
+
+          <Field.Root>
+            <Field.Label>사진 설명</Field.Label>
+            <Textarea
+              placeholder="각 사진에 뭐가 담겼는지 간단히 적어주세요."
+              value={photoNotes}
+              onChange={(e) => setPhotoNotes(e.target.value)}
+              rows={6}
+            />
+            <Field.HelperText>
+              사진 순서대로 적으면 흐름을 더 잘 잡아줘요.
+            </Field.HelperText>
+          </Field.Root>
+
+          <Field.Root>
+            <Field.Label>톤</Field.Label>
+            <Input value={tone} onChange={(e) => setTone(e.target.value)} />
+          </Field.Root>
           <Button
             colorPalette="brand"
             loading={busy}

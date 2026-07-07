@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Box,
+  Field,
   Heading,
   HStack,
   Input,
@@ -47,28 +48,37 @@ export default function SponsorCheck() {
       </Text>
 
       <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6}>
-        <Stack gap={3}>
-          <Textarea
-            placeholder="완성한 원고를 붙여넣으세요."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={12}
-          />
-          <Box>
-            <Text mb={1} fontSize="sm" color="gray.600">
-              최소 글자수
-            </Text>
+        <Stack gap={4}>
+          <Field.Root>
+            <Field.Label>원고</Field.Label>
+            <Textarea
+              placeholder="완성한 원고를 붙여넣으세요."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={12}
+            />
+          </Field.Root>
+
+          <Field.Root>
+            <Field.Label>최소 글자수</Field.Label>
             <Input
               type="number"
               value={minChars}
               onChange={(e) => setMinChars(Number(e.target.value))}
             />
-          </Box>
-          <Input
-            placeholder="필수 키워드 (쉼표로 구분)"
-            value={required}
-            onChange={(e) => setRequired(e.target.value)}
-          />
+          </Field.Root>
+
+          <Field.Root>
+            <Field.Label>필수 키워드</Field.Label>
+            <Input
+              placeholder="쉼표로 구분 (예: 협찬, 방문, 내돈내산)"
+              value={required}
+              onChange={(e) => setRequired(e.target.value)}
+            />
+            <Field.HelperText>
+              여기에 적은 단어가 원고에 모두 들어갔는지 검사합니다.
+            </Field.HelperText>
+          </Field.Root>
         </Stack>
 
         <Stack gap={2}>

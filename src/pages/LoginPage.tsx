@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Center,
+  Field,
   Heading,
   Input,
   Stack,
@@ -56,26 +57,32 @@ export default function LoginPage() {
         </Text>
 
         <form onSubmit={submit}>
-          <Stack gap={3}>
-            <Input
-              type="email"
-              required
-              placeholder="이메일"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Input
-              type="password"
-              required
-              placeholder="비밀번호"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {error && (
-              <Text fontSize="sm" color="red.500">
-                {error}
-              </Text>
-            )}
+          <Stack gap={4}>
+            <Field.Root required>
+              <Field.Label>
+                이메일 <Field.RequiredIndicator />
+              </Field.Label>
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field.Root>
+
+            <Field.Root required invalid={!!error}>
+              <Field.Label>
+                비밀번호 <Field.RequiredIndicator />
+              </Field.Label>
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {error && <Field.ErrorText>{error}</Field.ErrorText>}
+            </Field.Root>
+
             <Button type="submit" colorPalette="brand" loading={busy} w="full">
               {mode === "login" ? "로그인" : "회원가입"}
             </Button>
